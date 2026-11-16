@@ -8,13 +8,15 @@ interface AdminChangePasswordModalProps {
   onClose: () => void;
   currentUser: AdminUser | null;
   onCredentialsUpdated: () => void;
+  isSupabaseConnected?: boolean;
 }
 
 export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  onCredentialsUpdated
+  onCredentialsUpdated,
+  isSupabaseConnected = false
 }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newUsername, setNewUsername] = useState(currentUser?.username || 'admin');
@@ -84,6 +86,15 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 text-xs">
+          {!isSupabaseConnected && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-[11px] flex items-start space-x-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>Notice:</strong> This device is in <strong>Local Demo</strong> mode. Connect Supabase to save and synchronize your password across all your devices.
+              </span>
+            </div>
+          )}
+
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex items-start space-x-2">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />

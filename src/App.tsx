@@ -886,6 +886,7 @@ export function App() {
         isOpen={isAdminSettingsOpen}
         onClose={() => setIsAdminSettingsOpen(false)}
         currentUser={currentUser}
+        isSupabaseConnected={isSupabaseConnected}
         onCredentialsUpdated={() => {
           setCurrentUser(authService.getCurrentUser());
         }}

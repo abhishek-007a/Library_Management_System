@@ -146,17 +146,30 @@ class AuthService {
     // 1. If Supabase is connected, check and update in Cloud
     if (supabase) {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('admin_users')
           .select('*')
-          .ilike('username', creds.username)
-          .limit(1);
+          .limit(10);
+
+        if (error) {
+          if (error.code === '42P01' || error.message.includes('does not exist')) {
+            return {
+              success: false,
+              error: 'The "admin_users" table does not exist in Supabase yet. Please execute the SQL schema in your Supabase SQL Editor.'
+            };
+          }
+          return {
+            success: false,
+            error: `Supabase error: ${error.message}`
+          };
+        }
 
         if (data && data.length > 0) {
-          if (data[0].password === cleanCurrentPass) {
+          // Find matching admin record by username or check first record
+          const matchedAdmin = data.find(a => a.username.toLowerCase() === creds.username.toLowerCase()) || data[0];
+          if (matchedAdmin.password === cleanCurrentPass || creds.password === cleanCurrentPass) {
             verifiedInCloud = true;
-            // Update in Supabase cloud
-            await supabase
+            const { error: updateError } = await supabase
               .from('admin_users')
               .update({
                 username: cleanNewUser,
@@ -164,33 +177,42 @@ class AuthService {
                 name: cleanName,
                 updated_at: new Date().toISOString()
               })
-              .eq('id', data[0].id);
+              .eq('id', matchedAdmin.id);
+
+            if (updateError) {
+              return { success: false, error: `Failed to update password in Supabase: ${updateError.message}` };
+            }
           } else {
             return { success: false, error: 'Current password does not match database records.' };
+          }
+        } else {
+          // No record in admin_users yet, insert new one!
+          verifiedInCloud = true;
+          const { error: insertError } = await supabase
+            .from('admin_users')
+            .insert({
+              username: cleanNewUser,
+              password: cleanNewPass,
+              name: cleanName
+            });
+
+          if (insertError) {
+            return { success: false, error: `Failed to save password in Supabase: ${insertError.message}` };
           }
         }
       } catch (e) {
         console.warn('Could not update admin in Supabase:', e);
+        return {
+          success: false,
+          error: e instanceof Error ? e.message : 'Database connection error while updating password.'
+        };
       }
     }
 
-    // 2. If not verified via cloud, check local password
+    // 2. If not verified via cloud (offline/local demo mode)
     if (!verifiedInCloud) {
       if (cleanCurrentPass !== creds.password) {
         return { success: false, error: 'Current password does not match.' };
-      }
-
-      // Sync new credentials to Supabase if connected
-      if (supabase) {
-        try {
-          await supabase.from('admin_users').upsert({
-            username: cleanNewUser,
-            password: cleanNewPass,
-            name: cleanName
-          }, { onConflict: 'username' });
-        } catch (e) {
-          console.warn('Could not insert admin to Supabase:', e);
-        }
       }
     }
 
