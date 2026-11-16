@@ -114,17 +114,17 @@ export const IssueReturnModal: React.FC<IssueReturnModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[95vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30 flex-shrink-0">
               <Bookmark className="w-5 h-5 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Circulation Desk</h2>
-              <p className="text-xs text-slate-400">Issue book to borrower or check in returned books</p>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Circulation Desk</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400">Issue book to borrower or check in returned books</p>
             </div>
           </div>
           <button
@@ -136,10 +136,10 @@ export const IssueReturnModal: React.FC<IssueReturnModalProps> = ({
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-3 space-x-2">
+        <div className="flex border-b border-slate-200 bg-slate-50 px-3 sm:px-6 pt-2 sm:pt-3 space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('issue')}
-            className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-t-lg transition border-b-2 ${
+            className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-t-lg transition border-b-2 whitespace-nowrap ${
               activeTab === 'issue'
                 ? 'bg-white text-brand-600 border-brand-500 shadow-sm'
                 : 'text-slate-600 border-transparent hover:text-slate-900'
@@ -151,7 +151,7 @@ export const IssueReturnModal: React.FC<IssueReturnModalProps> = ({
 
           <button
             onClick={() => setActiveTab('return')}
-            className={`flex items-center space-x-2 px-4 py-2.5 text-sm font-semibold rounded-t-lg transition border-b-2 ${
+            className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold rounded-t-lg transition border-b-2 whitespace-nowrap ${
               activeTab === 'return'
                 ? 'bg-white text-brand-600 border-brand-500 shadow-sm'
                 : 'text-slate-600 border-transparent hover:text-slate-900'
@@ -163,7 +163,7 @@ export const IssueReturnModal: React.FC<IssueReturnModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           {activeTab === 'issue' ? (
             <form onSubmit={handleIssueSubmit} className="space-y-5">
               {/* 1. Specific Book Info Card (No dropdown needed when issuing a specific book!) */}

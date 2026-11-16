@@ -37,17 +37,17 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col">
         {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2.5 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30 shadow-inner">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 sm:p-2.5 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30 shadow-inner flex-shrink-0">
               <ShieldCheck className="w-5 h-5 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-tight">Admin & Librarian Portal</h2>
-              <p className="text-xs text-slate-400">Sign in to add, edit, or manage library books</p>
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Admin & Librarian Portal</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400">Sign in to add, edit, or manage library books</p>
             </div>
           </div>
           <button
@@ -59,7 +59,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-start space-x-2 animate-shake">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />

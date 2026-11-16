@@ -170,19 +170,19 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[95vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30 flex-shrink-0">
               <BookOpen className="w-5 h-5 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
                 {mode === 'edit' ? 'Edit Book Details' : 'Add Book to Library'}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400">
                 Auto-fill details via ISBN lookup or enter details manually
               </p>
             </div>
@@ -196,7 +196,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1">
           {/* Quick Lookup Toolbar */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
@@ -241,9 +241,9 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Left Column: Cover Preview & Barcode */}
-            <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
+            {/* Left Column: Cover Preview & Barcode (Mobile: shows below form so inputs are immediate) */}
+            <div className="order-2 md:order-1 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Cover Image Preview
@@ -296,7 +296,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
             </div>
 
             {/* Right Column: Metadata fields */}
-            <div className="md:col-span-2 space-y-4">
+            <div className="order-1 md:order-2 md:col-span-2 space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
                   Book Title *

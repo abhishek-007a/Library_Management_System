@@ -27,17 +27,17 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[95vh] sm:max-h-[92vh]">
         {/* Header (hidden in print) */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between no-print">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between no-print">
+          <div className="flex items-center space-x-2.5 sm:space-x-3">
+            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30 flex-shrink-0">
               <FileText className="w-5 h-5 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">Export Catalog Report (PDF & Spreadsheet)</h2>
-              <p className="text-xs text-slate-400">Download or print full library catalog with book prices and stock</p>
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">Export Catalog Report (PDF & CSV)</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400">Download or print full library catalog with book prices and stock</p>
             </div>
           </div>
           <button
@@ -49,36 +49,36 @@ export const PdfExportModal: React.FC<PdfExportModalProps> = ({
         </div>
 
         {/* Action bar (hidden in print) */}
-        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3 text-xs no-print">
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-slate-600">Total Titles: <strong>{totalTitles}</strong></span>
+        <div className="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 text-xs no-print">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] sm:text-xs">
+            <span className="font-bold text-slate-600">Titles: <strong>{totalTitles}</strong></span>
             <span className="text-slate-300">•</span>
-            <span className="font-bold text-slate-600">Total Physical Copies: <strong>{totalCopies}</strong></span>
+            <span className="font-bold text-slate-600">Physical Copies: <strong>{totalCopies}</strong></span>
             <span className="text-slate-300">•</span>
-            <span className="font-bold text-brand-700">Total Asset Value: <strong>₹{totalValue.toLocaleString('en-IN')}</strong></span>
+            <span className="font-bold text-brand-700">Total Value: <strong>₹{totalValue.toLocaleString('en-IN')}</strong></span>
           </div>
 
           <div className="flex items-center space-x-2">
             <button
               onClick={onExportCsv}
-              className="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg transition flex items-center space-x-1.5 shadow-xs"
+              className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold rounded-lg transition flex items-center space-x-1.5 shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Download Spreadsheet (.CSV)</span>
+              <span>CSV Spreadsheet</span>
             </button>
 
             <button
               onClick={handlePrintPdf}
-              className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg transition flex items-center space-x-1.5 shadow-xs"
+              className="flex-1 sm:flex-none justify-center px-3.5 sm:px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg transition flex items-center space-x-1.5 shadow-xs"
             >
               <Printer className="w-3.5 h-3.5" />
-              <span>Save / Print as PDF</span>
+              <span>Print / PDF</span>
             </button>
           </div>
         </div>
 
         {/* Printable Document Container */}
-        <div className="p-8 overflow-y-auto flex-1 bg-white print-area">
+        <div className="p-4 sm:p-8 overflow-y-auto flex-1 bg-white print-area">
           {/* Document Header */}
           <div className="border-b-2 border-slate-900 pb-4 mb-6">
             <div className="flex items-center justify-between">

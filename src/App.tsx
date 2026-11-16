@@ -364,50 +364,16 @@ export function App() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Admin Session Banner if logged in */}
-        {isAdmin ? (
-          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-md">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
-                <ShieldCheck className="w-5 h-5 text-brand-400" />
-              </div>
-              <div>
-                <p className="font-bold text-white text-sm">
-                  Librarian Admin Session Active: <span className="text-brand-400">{currentUser?.name}</span> ({currentUser?.username})
-                </p>
-                <p className="text-slate-400 text-[11px] mt-0.5">
-                  You have full privileges to add books via barcode scanning, edit metadata, delete entries, and manage loans.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setIsAdminSettingsOpen(true)}
-                title="Admin Account Settings"
-                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded-lg transition flex items-center space-x-1"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Exit Admin</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* Public Portal Notice */
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center space-x-3 text-xs shadow-xs">
-            <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100 flex-shrink-0">
-              <BookOpen className="w-5 h-5 text-brand-600" />
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        {/* Public Portal Notice (Shown only to non-admin visitors) */}
+        {!isAdmin && (
+          <div className="bg-white border border-slate-200/80 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 flex items-center space-x-3 text-xs shadow-xs">
+            <div className="p-2 sm:p-2.5 bg-brand-50 text-brand-600 rounded-xl border border-brand-100 flex-shrink-0">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-brand-600" />
             </div>
             <div>
-              <p className="font-bold text-slate-800 text-sm">
-                Welcome to the Library Public Catalog
+              <p className="font-bold text-slate-800 text-xs sm:text-sm">
+                Library Public Catalog
               </p>
               <p className="text-slate-500 text-[11px] mt-0.5">
                 Browse available titles, check physical shelf locations, and search by ISBN or category.
@@ -418,16 +384,16 @@ export function App() {
 
         {/* Supabase status warning banner if not connected and admin is logged in */}
         {isAdmin && !isSupabaseConnected && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs shadow-xs">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+              <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl flex-shrink-0">
                 <HardDrive className="w-5 h-5" />
               </div>
               <div>
                 <p className="font-bold text-amber-900">
                   Demo Mode (Using Local Storage with Preloaded Books)
                 </p>
-                <p className="text-amber-700 mt-0.5">
+                <p className="text-amber-700 mt-0.5 text-[11px]">
                   You can scan barcodes and add books immediately! Connect Supabase anytime for cloud storage.
                 </p>
               </div>
@@ -435,35 +401,35 @@ export function App() {
 
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm whitespace-nowrap"
+              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition flex items-center justify-center space-x-1.5 shadow-sm whitespace-nowrap text-xs"
             >
               <Cloud className="w-4 h-4" />
-              <span>Connect Supabase Database</span>
+              <span>Connect Supabase</span>
             </button>
           </div>
         )}
 
         {/* Dashboard Stat KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5">
-            <div className="p-3 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
-              <BookOpen className="w-5 h-5" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 sm:space-x-3.5">
+            <div className="p-2 sm:p-3 bg-brand-50 text-brand-600 rounded-lg sm:rounded-xl border border-brand-100 flex-shrink-0">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Total Books</p>
-              <p className="text-xl font-black text-slate-900 mt-0.5">{stats.totalTitles}</p>
-              <p className="text-[10px] text-slate-500 font-medium">{stats.totalCopies} physical copies</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] uppercase font-bold text-slate-400 truncate">Total Books</p>
+              <p className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">{stats.totalTitles}</p>
+              <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium truncate">{stats.totalCopies} copies</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5">
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
-              <CheckCircle2 className="w-5 h-5" />
+          <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 sm:space-x-3.5">
+            <div className="p-2 sm:p-3 bg-emerald-50 text-emerald-600 rounded-lg sm:rounded-xl border border-emerald-100 flex-shrink-0">
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Available on Shelf</p>
-              <p className="text-xl font-black text-emerald-700 mt-0.5">{stats.availableCopies}</p>
-              <p className="text-[10px] text-emerald-600 font-medium">Ready to read</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] uppercase font-bold text-slate-400 truncate">On Shelf</p>
+              <p className="text-lg sm:text-xl font-black text-emerald-700 mt-0.5">{stats.availableCopies}</p>
+              <p className="text-[9px] sm:text-[10px] text-emerald-600 font-medium truncate">Ready to read</p>
             </div>
           </div>
 
@@ -471,17 +437,17 @@ export function App() {
             onClick={() => {
               if (isAdmin) setActiveTab('circulation');
             }}
-            className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 ${
+            className={`bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 sm:space-x-3.5 ${
               isAdmin ? 'cursor-pointer hover:border-brand-300 transition' : ''
             }`}
           >
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
-              <BookMarked className="w-5 h-5" />
+            <div className="p-2 sm:p-3 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl border border-blue-100 flex-shrink-0">
+              <BookMarked className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Currently Borrowed</p>
-              <p className="text-xl font-black text-blue-700 mt-0.5">{stats.borrowedCopies}</p>
-              <p className="text-[10px] text-blue-600 font-medium">
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] uppercase font-bold text-slate-400 truncate">Borrowed</p>
+              <p className="text-lg sm:text-xl font-black text-blue-700 mt-0.5">{stats.borrowedCopies}</p>
+              <p className="text-[9px] sm:text-[10px] text-blue-600 font-medium truncate">
                 {stats.overdueLoans > 0 ? `${stats.overdueLoans} overdue` : 'On loan'}
               </p>
             </div>
@@ -491,27 +457,27 @@ export function App() {
             onClick={() => {
               if (isAdmin) setActiveTab('members');
             }}
-            className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 ${
+            className={`bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 sm:space-x-3.5 ${
               isAdmin ? 'cursor-pointer hover:border-brand-300 transition' : ''
             }`}
           >
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
-              <Users className="w-5 h-5" />
+            <div className="p-2 sm:p-3 bg-indigo-50 text-indigo-600 rounded-lg sm:rounded-xl border border-indigo-100 flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Registered Patrons</p>
-              <p className="text-xl font-black text-indigo-700 mt-0.5">{stats.totalMembers}</p>
-              <p className="text-[10px] text-indigo-600 font-medium">Active members</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] uppercase font-bold text-slate-400 truncate">Patrons</p>
+              <p className="text-lg sm:text-xl font-black text-indigo-700 mt-0.5">{stats.totalMembers}</p>
+              <p className="text-[9px] sm:text-[10px] text-indigo-600 font-medium truncate">Members</p>
             </div>
           </div>
         </div>
 
         {/* Catalog Tab View */}
         {activeTab === 'catalog' && (
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             {/* Action & Filter Toolbar */}
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-2.5 sm:gap-3">
                 {/* Search Bar */}
                 <div className="relative w-full md:w-96">
                   <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
@@ -533,7 +499,7 @@ export function App() {
                 </div>
 
                 {/* Right toolbar controls */}
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <div className="flex items-center gap-1.5 sm:gap-2 w-full md:w-auto justify-between sm:justify-end flex-wrap">
                   {/* View Mode Toggle */}
                   <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
                     <button
@@ -563,7 +529,7 @@ export function App() {
                         setPrinterInitialBook(null);
                         setIsPrinterOpen(true);
                       }}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5"
+                      className="hidden sm:flex px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition items-center space-x-1.5"
                       title="Generate and print barcode stickers"
                     >
                       <Printer className="w-3.5 h-3.5" />
@@ -574,22 +540,22 @@ export function App() {
                   {/* Export Options (Spreadsheet & PDF) */}
                   <button
                     onClick={() => setIsPdfExportOpen(true)}
-                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
+                    className="px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
                     title="Export as PDF Report or Spreadsheet (.CSV)"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Export (PDF / CSV)</span>
+                    <span>Export<span className="hidden sm:inline"> (PDF / CSV)</span></span>
                   </button>
 
                   {/* Admin Book Actions */}
                   {isAdmin && (
-                    <>
+                    <div className="flex items-center space-x-1.5 ml-auto sm:ml-0">
                       <button
                         onClick={handleOpenManualAdd}
-                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                        className="px-3 sm:px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Add Book</span>
+                        <span>Add<span className="hidden sm:inline"> Book</span></span>
                       </button>
 
                       <button
@@ -597,18 +563,18 @@ export function App() {
                           setScannerMode('catalog');
                           setIsScannerOpen(true);
                         }}
-                        className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                        className="px-3 sm:px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
                       >
                         <Camera className="w-4 h-4" />
-                        <span>Scan & Add</span>
+                        <span>Scan<span className="hidden sm:inline"> & Add</span></span>
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* Filters line */}
-              <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-bold text-slate-500 flex items-center space-x-1">
                     <Filter className="w-3.5 h-3.5" />
@@ -618,7 +584,7 @@ export function App() {
                   <select
                     value={selectedGenre}
                     onChange={(e) => setSelectedGenre(e.target.value)}
-                    className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="flex-1 sm:flex-none px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
                     <option value="all">All Genres ({books.length})</option>
                     {genresList.map(g => (
@@ -629,23 +595,23 @@ export function App() {
                   <select
                     value={availabilityFilter}
                     onChange={(e) => setAvailabilityFilter(e.target.value as 'all' | 'available' | 'borrowed')}
-                    className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="flex-1 sm:flex-none px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
                     <option value="all">All Status</option>
-                    <option value="available">Available on Shelf Only</option>
+                    <option value="available">Available Only</option>
                     <option value="borrowed">Checked Out Only</option>
                   </select>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 justify-end">
                   <span className="text-slate-400 font-medium">Sort:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as 'newest' | 'title' | 'author' | 'stock')}
-                    className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
                     <option value="newest">Recently Added</option>
-                    <option value="title">Book Title (A-Z)</option>
+                    <option value="title">Title (A-Z)</option>
                     <option value="author">Author Name</option>
                     <option value="stock">Highest Stock</option>
                   </select>
@@ -710,20 +676,20 @@ export function App() {
 
         {/* Circulation Tab View (Admin only) */}
         {activeTab === 'circulation' && isAdmin && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 bg-white p-3.5 sm:p-5 rounded-xl sm:rounded-2xl border border-slate-200/80 shadow-xs">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Circulation & Loan Operations</h2>
                 <p className="text-xs text-slate-500 mt-0.5">Manage checkouts, due dates, and returns with barcode scanning</p>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <button
                   onClick={() => {
                     setScannerMode('return');
                     setIsScannerOpen(true);
                   }}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-sm"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Scan to Return/Check In</span>
@@ -734,7 +700,7 @@ export function App() {
                     setPreselectedBookForIssue(null);
                     setIsIssueReturnOpen(true);
                   }}
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center space-x-1.5 shadow-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Issue New Loan</span>

@@ -55,12 +55,12 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl">
+            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl flex-shrink-0">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
@@ -74,7 +74,7 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3.5 sm:space-y-4 text-xs">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 flex items-start space-x-2">
               <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />

@@ -36,10 +36,10 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[95vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="px-2.5 py-1 bg-brand-500/20 text-brand-300 border border-brand-500/30 text-[11px] font-bold uppercase rounded-md tracking-wider">
               {book.genre || 'General'}
@@ -55,10 +55,10 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          <div className="flex flex-col sm:flex-row gap-6 items-start">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 sm:space-y-6 flex-1">
+          <div className="flex flex-col sm:flex-row gap-5 sm:gap-6 items-center sm:items-start">
             {/* Book Cover */}
-            <div className="w-full sm:w-44 flex-shrink-0">
+            <div className="w-32 sm:w-44 flex-shrink-0">
               <div className="aspect-[2/3] w-full rounded-xl overflow-hidden shadow-md border border-slate-200 bg-slate-100">
                 <img
                   src={book.cover_url || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80'}
@@ -71,9 +71,9 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
               </div>
 
               {/* Status pill under cover */}
-              <div className="mt-3 text-center">
+              <div className="mt-2.5 text-center">
                 <span
-                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                  className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                     isAvailable
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                       : 'bg-rose-50 text-rose-700 border border-rose-200'
@@ -87,7 +87,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   ) : (
                     <>
                       <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                      <span>All Copies Checked Out</span>
+                      <span>Checked Out</span>
                     </>
                   )}
                 </span>
@@ -95,7 +95,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
             </div>
 
             {/* Book Info */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 w-full space-y-4 text-left">
               <div>
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-tight">
                   {book.title}
@@ -233,19 +233,19 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 sm:py-3.5 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
+            className="px-3.5 py-1.5 sm:px-4 sm:py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
           >
             Close
           </button>
 
           {isAdmin ? (
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <button
                 onClick={() => onEdit(book)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
+                className="px-3 py-1.5 sm:px-4 sm:py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
               >
                 Edit Details
               </button>
@@ -257,10 +257,10 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                     await onReturn(activeLoansForBook[0].id);
                     onClose();
                   }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-sm"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Return Book ({activeLoansForBook[0].borrower?.name})</span>
+                  <span>Return ({activeLoansForBook[0].borrower?.name})</span>
                 </button>
               )}
 
@@ -268,7 +268,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
               {isAvailable && (
                 <button
                   onClick={() => onIssue(book)}
-                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-sm"
                 >
                   <Bookmark className="w-3.5 h-3.5" />
                   <span>Issue Book</span>
