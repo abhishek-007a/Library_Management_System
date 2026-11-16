@@ -6,6 +6,7 @@ export interface Book {
   publisher?: string;
   published_date?: string;
   page_count?: number;
+  price?: number;
   genre: string;
   description?: string;
   cover_url?: string;
@@ -55,6 +56,7 @@ export interface BookFetchResult {
   publisher: string;
   published_date: string;
   page_count?: number;
+  price?: number;
   genre: string;
   description: string;
   cover_url: string;

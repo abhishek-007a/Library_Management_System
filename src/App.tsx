@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, Search, Filter, Plus, Camera, LayoutGrid, Table as TableIcon, 
   RotateCcw, Download, Sparkles, Cloud, AlertTriangle, CheckCircle2, 
-  BookMarked, Users, Layers, ExternalLink, HardDrive, Printer, ShieldCheck, Lock, LogOut
+  BookMarked, Users, Layers, ExternalLink, HardDrive, Printer, ShieldCheck, Lock, LogOut, Settings
 } from 'lucide-react';
 import { Book, Borrower, Loan, BookFetchResult } from './types';
 import { storageService } from './services/storageService';
@@ -22,6 +22,7 @@ import { SupabaseSettingsModal } from './components/SupabaseSettingsModal';
 import { MembersView } from './components/MembersView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminChangePasswordModal } from './components/AdminChangePasswordModal';
+import { PdfExportModal } from './components/PdfExportModal';
 
 export function App() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -61,6 +62,7 @@ export function App() {
   const [isPrinterOpen, setIsPrinterOpen] = useState(false);
   const [printerInitialBook, setPrinterInitialBook] = useState<Book | null>(null);
 
+  const [isPdfExportOpen, setIsPdfExportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
@@ -313,11 +315,12 @@ export function App() {
   // Export to CSV
   const handleExportCSV = () => {
     if (books.length === 0) return;
-    const headers = ['ISBN', 'Title', 'Author', 'Publisher', 'Year', 'Genre', 'Shelf', 'Total Copies', 'Available Copies'];
+    const headers = ['ISBN', 'Title', 'Author', 'Price (INR)', 'Publisher', 'Year', 'Genre', 'Shelf', 'Total Copies', 'Available Copies'];
     const rows = books.map(b => [
       `"${b.isbn}"`,
       `"${b.title.replace(/"/g, '""')}"`,
       `"${b.author.replace(/"/g, '""')}"`,
+      b.price ? b.price.toFixed(2) : '0.00',
       `"${(b.publisher || '').replace(/"/g, '""')}"`,
       `"${b.published_date || ''}"`,
       `"${b.genre || ''}"`,
@@ -382,9 +385,10 @@ export function App() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setIsAdminSettingsOpen(true)}
-                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition"
+                title="Admin Account Settings"
+                className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition"
               >
-                Account Settings
+                <Settings className="w-4 h-4" />
               </button>
               <button
                 onClick={handleLogout}
@@ -397,28 +401,18 @@ export function App() {
           </div>
         ) : (
           /* Public Portal Notice */
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
-                <BookOpen className="w-5 h-5 text-brand-600" />
-              </div>
-              <div>
-                <p className="font-bold text-slate-800 text-sm">
-                  Welcome to the Library Public Catalog
-                </p>
-                <p className="text-slate-500 text-[11px] mt-0.5">
-                  Browse available titles, check physical shelf locations, and search by ISBN or category.
-                </p>
-              </div>
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex items-center space-x-3 text-xs shadow-xs">
+            <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100 flex-shrink-0">
+              <BookOpen className="w-5 h-5 text-brand-600" />
             </div>
-
-            <button
-              onClick={() => setIsAdminLoginOpen(true)}
-              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm whitespace-nowrap"
-            >
-              <Lock className="w-3.5 h-3.5 text-brand-400" />
-              <span>Admin / Librarian Sign In</span>
-            </button>
+            <div>
+              <p className="font-bold text-slate-800 text-sm">
+                Welcome to the Library Public Catalog
+              </p>
+              <p className="text-slate-500 text-[11px] mt-0.5">
+                Browse available titles, check physical shelf locations, and search by ISBN or category.
+              </p>
+            </div>
           </div>
         )}
 
@@ -577,18 +571,18 @@ export function App() {
                     </button>
                   )}
 
-                  {/* Export CSV */}
+                  {/* Export Options (Spreadsheet & PDF) */}
                   <button
-                    onClick={handleExportCSV}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5"
-                    title="Export books inventory to CSV"
+                    onClick={() => setIsPdfExportOpen(true)}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
+                    title="Export as PDF Report or Spreadsheet (.CSV)"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Export</span>
+                    <span>Export (PDF / CSV)</span>
                   </button>
 
                   {/* Admin Book Actions */}
-                  {isAdmin ? (
+                  {isAdmin && (
                     <>
                       <button
                         onClick={handleOpenManualAdd}
@@ -609,14 +603,6 @@ export function App() {
                         <span>Scan & Add</span>
                       </button>
                     </>
-                  ) : (
-                    <button
-                      onClick={() => setIsAdminLoginOpen(true)}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-brand-400" />
-                      <span>Admin Login</span>
-                    </button>
                   )}
                 </div>
               </div>
@@ -914,6 +900,13 @@ export function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onConfigChanged={loadData}
+      />
+
+      <PdfExportModal
+        isOpen={isPdfExportOpen}
+        onClose={() => setIsPdfExportOpen(false)}
+        books={filteredBooks}
+        onExportCsv={handleExportCSV}
       />
 
       {/* Admin Auth Modals */}

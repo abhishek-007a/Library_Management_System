@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS public.books (
     publisher VARCHAR(255),
     published_date VARCHAR(64),
     page_count INTEGER,
+    price NUMERIC(10, 2) DEFAULT 0.00,
     genre VARCHAR(100) DEFAULT 'General',
     description TEXT,
     cover_url TEXT,

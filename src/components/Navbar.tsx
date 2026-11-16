@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Camera, Plus, Users, Bookmark, Layers, Cloud, HardDrive, Printer, ShieldCheck, Lock, LogOut, KeyRound } from 'lucide-react';
+import { BookOpen, Camera, Plus, Users, Bookmark, Layers, Cloud, HardDrive, Printer, ShieldCheck, Lock, LogOut, Settings } from 'lucide-react';
 import { AdminUser } from '../services/authService';
 
 interface NavbarProps {
@@ -156,10 +156,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className="flex items-center space-x-1 pl-1 border-l border-slate-200">
                   <button
                     onClick={onOpenAdminSettings}
-                    title="Change Admin Password / Username"
+                    title="Admin Account Settings (Change Username/Password)"
                     className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
                   >
-                    <KeyRound className="w-4 h-4" />
+                    <Settings className="w-4 h-4" />
                   </button>
 
                   <button

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle, Sparkles } from 'lucide-react';
+import { X, ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { authService, AdminUser } from '../services/authService';
 import { soundService } from '../services/soundService';
 
@@ -34,12 +34,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       soundService.playError();
       setError(res.error || 'Authentication failed');
     }
-  };
-
-  const handleFillDemoCredentials = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setError(null);
   };
 
   return (
@@ -113,26 +107,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-          </div>
-
-          {/* Quick Demo Credentials */}
-          <div className="p-3 bg-brand-50/60 border border-brand-100 rounded-xl flex items-center justify-between text-xs text-brand-900">
-            <div>
-              <p className="font-bold flex items-center space-x-1 text-[11px]">
-                <Sparkles className="w-3.5 h-3.5 text-brand-600" />
-                <span>Default Demo Credentials:</span>
-              </p>
-              <p className="text-[11px] text-brand-700 font-mono mt-0.5">
-                Username: <strong>admin</strong> | Password: <strong>admin123</strong>
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleFillDemoCredentials}
-              className="px-2.5 py-1 bg-white hover:bg-brand-50 border border-brand-200 text-brand-700 font-bold text-[11px] rounded-lg transition shadow-xs whitespace-nowrap"
-            >
-              Auto Fill
-            </button>
           </div>
 
           {/* Actions */}

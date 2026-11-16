@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle, Lock, RotateCcw } from 'lucide-react';
+import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle, Lock, RotateCcw, Tag } from 'lucide-react';
 import { Book, Loan } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
 
@@ -143,6 +143,16 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400">Pages</p>
                       <p className="font-semibold text-slate-800">{book.page_count} pages</p>
+                    </div>
+                  </div>
+                )}
+
+                {book.price !== undefined && book.price > 0 && (
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center space-x-2">
+                    <Tag className="w-4 h-4 text-brand-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Price</p>
+                      <p className="font-bold text-slate-900">₹{book.price}</p>
                     </div>
                   </div>
                 )}

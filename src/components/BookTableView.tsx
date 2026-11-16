@@ -31,6 +31,7 @@ export const BookTableView: React.FC<BookTableViewProps> = ({
               <th className="px-4 py-3">Book & Author</th>
               <th className="px-4 py-3">ISBN & Barcode</th>
               <th className="px-4 py-3">Genre</th>
+              <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Shelf</th>
               <th className="px-4 py-3 text-center">Availability</th>
               <th className="px-4 py-3 text-right">Action</th>
@@ -83,6 +84,13 @@ export const BookTableView: React.FC<BookTableViewProps> = ({
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 rounded text-[11px] font-semibold border border-slate-200">
                       {book.genre || 'General'}
+                    </span>
+                  </td>
+
+                  {/* Price */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="font-bold text-slate-800 text-xs">
+                      {book.price !== undefined && book.price > 0 ? `₹${book.price}` : '—'}
                     </span>
                   </td>
 

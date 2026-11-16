@@ -43,6 +43,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     publisher: '',
     published_date: '',
     page_count: '' as string | number,
+    price: '' as string | number,
     genre: 'General',
     description: '',
     cover_url: '',
@@ -65,6 +66,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         publisher: initialData.publisher || '',
         published_date: initialData.published_date || '',
         page_count: initialData.page_count ?? '',
+        price: ('price' in initialData && initialData.price !== undefined ? initialData.price : ''),
         genre: initialData.genre || 'General',
         description: initialData.description || '',
         cover_url: initialData.cover_url || '',
@@ -81,6 +83,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         publisher: '',
         published_date: '',
         page_count: '',
+        price: '',
         genre: 'General',
         description: '',
         cover_url: '',
@@ -142,6 +145,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         publisher: formData.publisher.trim() || undefined,
         published_date: formData.published_date.trim() || undefined,
         page_count: formData.page_count ? Number(formData.page_count) : undefined,
+        price: formData.price !== '' ? Number(formData.price) : 0,
         genre: formData.genre.trim() || 'General',
         description: formData.description.trim() || undefined,
         cover_url: formData.cover_url.trim() || undefined,
@@ -342,14 +346,14 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
                     Publisher
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Prentice Hall"
+                    placeholder="e.g. DC Books"
                     value={formData.publisher}
                     onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
@@ -362,7 +366,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. 2008"
+                    placeholder="e.g. 2020"
                     value={formData.published_date}
                     onChange={(e) => setFormData({ ...formData, published_date: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
@@ -375,10 +379,25 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                   </label>
                   <input
                     type="number"
-                    placeholder="e.g. 464"
+                    placeholder="e.g. 350"
                     value={formData.page_count}
                     onChange={(e) => setFormData({ ...formData, page_count: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-brand-700 mb-1">
+                    Price (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="e.g. 299"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-brand-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
                 </div>
               </div>
