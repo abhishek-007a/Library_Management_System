@@ -397,7 +397,25 @@ class StorageService {
     });
   }
 
-  async borrowBook(bookId: string, borrowerId: string, dueDateDays = 14, notes = ''): Promise<Loan> {
+  async borrowBook(bookId: string, borrowerNameOrId: string, dueDateDays = 14, notes = ''): Promise<Loan> {
+    // Resolve borrower: check if it's an existing ID or find/create by name
+    let borrowerId = borrowerNameOrId;
+    const existingBorrowers = await this.getBorrowers();
+    let matched = existingBorrowers.find(
+      b => b.id === borrowerNameOrId || b.name.toLowerCase() === borrowerNameOrId.trim().toLowerCase()
+    );
+
+    if (!matched) {
+      matched = await this.addBorrower({
+        name: borrowerNameOrId.trim(),
+        email: `${borrowerNameOrId.trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'member'}@library.local`,
+        phone: '',
+        membership_id: `LIB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+        membership_type: 'standard'
+      });
+    }
+    borrowerId = matched.id;
+
     const borrowDate = new Date().toISOString().split('T')[0];
     const due = new Date();
     due.setDate(due.getDate() + dueDateDays);
