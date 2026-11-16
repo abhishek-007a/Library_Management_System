@@ -1,15 +1,17 @@
 import React from 'react';
-import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
-import { Book } from '../types';
+import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle, Lock, RotateCcw } from 'lucide-react';
+import { Book, Loan } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
 
 interface BookDetailModalProps {
   book: Book | null;
   isAdmin: boolean;
   isOpen: boolean;
+  loans?: Loan[];
   onClose: () => void;
   onEdit: (book: Book) => void;
   onIssue: (book: Book) => void;
+  onReturn?: (loanId: string) => Promise<void> | void;
   onPrintBarcode: (book: Book) => void;
   onOpenLogin: () => void;
 }
@@ -18,15 +20,20 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   book,
   isAdmin,
   isOpen,
+  loans = [],
   onClose,
   onEdit,
   onIssue,
+  onReturn,
   onPrintBarcode,
   onOpenLogin
 }) => {
   if (!isOpen || !book) return null;
 
   const isAvailable = book.available_copies > 0;
+  const activeLoansForBook = loans.filter(
+    l => l.book_id === book.id && (l.status === 'active' || l.status === 'overdue')
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
@@ -141,6 +148,36 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 )}
               </div>
 
+              {/* Active Loans Section (if currently checked out by someone) */}
+              {activeLoansForBook.length > 0 && (
+                <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-900">
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>Currently Checked Out ({activeLoansForBook.length} copy)</span>
+                  </div>
+                  {activeLoansForBook.map(loan => (
+                    <div key={loan.id} className="flex items-center justify-between text-xs bg-white p-2.5 rounded-lg border border-amber-200/80 shadow-xs">
+                      <div>
+                        <p className="font-bold text-slate-900">Borrower: {loan.borrower?.name || 'Borrower'}</p>
+                        <p className="text-[11px] text-slate-500">Borrowed on: {loan.borrow_date}</p>
+                      </div>
+                      {isAdmin && onReturn && (
+                        <button
+                          onClick={async () => {
+                            await onReturn(loan.id);
+                            onClose();
+                          }}
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-xs"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Return Now</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Description */}
               {book.description && (
                 <div>
@@ -195,7 +232,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
           </button>
 
           {isAdmin ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={() => onEdit(book)}
                 className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
@@ -203,14 +240,30 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 Edit Details
               </button>
 
-              <button
-                onClick={() => onIssue(book)}
-                disabled={!isAvailable}
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
-              >
-                <Bookmark className="w-3.5 h-3.5" />
-                <span>Issue / Checkout Book</span>
-              </button>
+              {/* Direct Return Button if book has active loans */}
+              {activeLoansForBook.length > 0 && onReturn && (
+                <button
+                  onClick={async () => {
+                    await onReturn(activeLoansForBook[0].id);
+                    onClose();
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Return Book ({activeLoansForBook[0].borrower?.name})</span>
+                </button>
+              )}
+
+              {/* Issue Button if copy available */}
+              {isAvailable && (
+                <button
+                  onClick={() => onIssue(book)}
+                  className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Issue Book</span>
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex items-center space-x-2">

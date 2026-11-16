@@ -47,6 +47,7 @@ export function App() {
 
   // Modals state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannerMode, setScannerMode] = useState<'catalog' | 'return'>('catalog');
   const [isBookFormOpen, setIsBookFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'add' | 'edit'>('add');
   const [formInitialData, setFormInitialData] = useState<Book | BookFetchResult | null>(null);
@@ -262,6 +263,38 @@ export function App() {
     await loadData();
   };
 
+  const handleReturnScan = async (isbn: string) => {
+    const cleanIsbn = isbn.replace(/[^0-9X]/gi, '');
+    const book = books.find(b => b.isbn.replace(/[^0-9X]/gi, '') === cleanIsbn);
+
+    if (!book) {
+      soundService.playError();
+      alert(`No book with ISBN "${isbn}" found in library inventory.`);
+      return;
+    }
+
+    // Find active loan for this book
+    const activeLoan = loans.find(
+      l => l.book_id === book.id && (l.status === 'active' || l.status === 'overdue')
+    );
+
+    if (!activeLoan) {
+      soundService.playError();
+      alert(`"${book.title}" (ISBN: ${book.isbn}) is not currently checked out.\nAll ${book.total_copies} copies are already on shelf ${book.location_shelf}.`);
+      return;
+    }
+
+    try {
+      await storageService.returnBook(activeLoan.id);
+      soundService.playSuccess();
+      await loadData();
+      alert(`✅ Book Returned Successfully!\n\n"${book.title}"\nReturned from borrower: ${activeLoan.borrower?.name || 'Borrower'}\n1 copy restored to ${book.location_shelf} (${book.available_copies + 1} of ${book.total_copies} now available).`);
+    } catch (err) {
+      soundService.playError();
+      alert('Failed to process book return.');
+    }
+  };
+
   // Handlers for Members
   const handleAddBorrower = async (data: Omit<Borrower, 'id' | 'created_at'>) => {
     if (!isAdmin) return;
@@ -308,7 +341,10 @@ export function App() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onOpenScanner={() => setIsScannerOpen(true)}
+        onOpenScanner={() => {
+          setScannerMode('catalog');
+          setIsScannerOpen(true);
+        }}
         onOpenAddModal={handleOpenManualAdd}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenPrinter={() => {
@@ -563,7 +599,10 @@ export function App() {
                       </button>
 
                       <button
-                        onClick={() => setIsScannerOpen(true)}
+                        onClick={() => {
+                          setScannerMode('catalog');
+                          setIsScannerOpen(true);
+                        }}
                         className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
                       >
                         <Camera className="w-4 h-4" />
@@ -694,7 +733,10 @@ export function App() {
 
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setIsScannerOpen(true)}
+                  onClick={() => {
+                    setScannerMode('return');
+                    setIsScannerOpen(true);
+                  }}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
                 >
                   <Camera className="w-4 h-4" />
@@ -819,6 +861,8 @@ export function App() {
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
+        scannerMode={scannerMode}
+        onReturnScan={handleReturnScan}
         onBookFound={handleBookFoundFromScan}
       />
 
@@ -834,9 +878,11 @@ export function App() {
         book={selectedBook}
         isAdmin={isAdmin}
         isOpen={isDetailOpen}
+        loans={loans}
         onClose={() => setIsDetailOpen(false)}
         onEdit={handleEditBook}
         onIssue={handleIssueBookTrigger}
+        onReturn={handleReturnBook}
         onPrintBarcode={handlePrintBarcodeTrigger}
         onOpenLogin={() => setIsAdminLoginOpen(true)}
       />
@@ -852,6 +898,7 @@ export function App() {
         onReturnBook={handleReturnBook}
         onOpenBarcodeScanner={() => {
           setIsIssueReturnOpen(false);
+          setScannerMode('return');
           setIsScannerOpen(true);
         }}
       />

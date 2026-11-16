@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
-import { Camera, Upload, Keyboard, Search, X, Loader2, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Camera, Upload, Keyboard, Search, X, Loader2, Sparkles, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
 import { soundService } from '../services/soundService';
 import { BookFetchResult } from '../types';
@@ -9,6 +9,8 @@ interface BarcodeScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBookFound: (bookData: BookFetchResult, isbn: string) => void;
+  onReturnScan?: (isbn: string) => Promise<void> | void;
+  scannerMode?: 'catalog' | 'return';
   title?: string;
   subtitle?: string;
 }
@@ -17,9 +19,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   isOpen,
   onClose,
   onBookFound,
-  title = 'Scan Book ISBN / Barcode',
-  subtitle = 'Point your camera at the ISBN barcode on the back of any book to auto-fetch details'
+  onReturnScan,
+  scannerMode = 'catalog',
+  title,
+  subtitle
 }) => {
+  const resolvedTitle = title || (scannerMode === 'return' ? 'Scan Book to Return / Check-In' : 'Scan Book ISBN / Barcode');
+  const resolvedSubtitle = subtitle || (scannerMode === 'return' ? 'Point your camera at the returned book barcode to check it in' : 'Point your camera at the ISBN barcode on the back of any book to auto-fetch details');
   const [activeTab, setActiveTab] = useState<'camera' | 'upload' | 'usb' | 'manual'>('camera');
   const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string>('');
@@ -179,6 +185,19 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     setLastScannedCode(cleaned);
     await stopCameraScanner();
 
+    if (scannerMode === 'return' && onReturnScan) {
+      try {
+        await onReturnScan(cleaned);
+        onClose();
+        return;
+      } catch (err: unknown) {
+        soundService.playError();
+        const message = err instanceof Error ? err.message : 'Return failed.';
+        setLookupError(message);
+        return;
+      }
+    }
+
     setIsLoadingLookup(true);
     setLookupError(null);
 
@@ -259,8 +278,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               <Camera className="w-5 h-5 text-brand-400" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white tracking-tight">{title}</h2>
-              <p className="text-xs text-slate-400">{subtitle}</p>
+              <h2 className="text-lg font-bold text-white tracking-tight">{resolvedTitle}</h2>
+              <p className="text-xs text-slate-400">{resolvedSubtitle}</p>
             </div>
           </div>
           <button
@@ -463,8 +482,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   disabled={!manualIsbn.trim() || isLoadingLookup}
                   className="px-5 py-3 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-sm rounded-xl transition flex items-center space-x-2 shadow-sm"
                 >
-                  <Search className="w-4 h-4" />
-                  <span>Fetch Details</span>
+                  {scannerMode === 'return' ? (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      <span>Process Return</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" />
+                      <span>Fetch Details</span>
+                    </>
+                  )}
                 </button>
               </div>
 
