@@ -1,24 +1,28 @@
 import React from 'react';
-import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, Printer, Bookmark, Calendar, Building2, FileText, MapPin, Layers, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { Book } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
 
 interface BookDetailModalProps {
   book: Book | null;
+  isAdmin: boolean;
   isOpen: boolean;
   onClose: () => void;
   onEdit: (book: Book) => void;
   onIssue: (book: Book) => void;
   onPrintBarcode: (book: Book) => void;
+  onOpenLogin: () => void;
 }
 
 export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   book,
+  isAdmin,
   isOpen,
   onClose,
   onEdit,
   onIssue,
-  onPrintBarcode
+  onPrintBarcode,
+  onOpenLogin
 }) => {
   if (!isOpen || !book) return null;
 
@@ -100,7 +104,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center space-x-2">
                     <MapPin className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Location</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Library Shelf</p>
                       <p className="font-semibold text-slate-800">{book.location_shelf}</p>
                     </div>
                   </div>
@@ -120,7 +124,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center space-x-2">
                     <Calendar className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Year / Date</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Year</p>
                       <p className="font-semibold text-slate-800">{book.published_date}</p>
                     </div>
                   </div>
@@ -155,10 +159,10 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                Spine Barcode Label
+                Spine Barcode Identifier
               </p>
               <p className="text-[11px] text-slate-500">
-                Printable label with ISBN barcode for book spine or library cataloging
+                Official library tracking barcode (ISBN: {book.isbn})
               </p>
             </div>
             
@@ -167,14 +171,16 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 <BarcodeRenderer value={book.isbn} height={38} width={1.3} fontSize={10} />
               </div>
 
-              <button
-                type="button"
-                onClick={() => onPrintBarcode(book)}
-                className="px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                <span>Print Sticker</span>
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => onPrintBarcode(book)}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Sticker</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -182,22 +188,45 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
         {/* Footer Actions */}
         <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <button
-            onClick={() => onEdit(book)}
+            onClick={onClose}
             className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
           >
-            Edit Details
+            Close
           </button>
 
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => onIssue(book)}
-              disabled={!isAvailable}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              <span>Issue / Checkout Book</span>
-            </button>
-          </div>
+          {isAdmin ? (
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => onEdit(book)}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-white transition"
+              >
+                Edit Details
+              </button>
+
+              <button
+                onClick={() => onIssue(book)}
+                disabled={!isAvailable}
+                className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+              >
+                <Bookmark className="w-3.5 h-3.5" />
+                <span>Issue / Checkout Book</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-500">Are you a librarian?</span>
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenLogin();
+                }}
+                className="text-xs font-bold text-brand-600 hover:text-brand-700 flex items-center space-x-1"
+              >
+                <Lock className="w-3 h-3" />
+                <span>Admin Login</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

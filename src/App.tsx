@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BookOpen, Search, Filter, Plus, Camera, LayoutGrid, Table as TableIcon, 
   RotateCcw, Download, Sparkles, Cloud, AlertTriangle, CheckCircle2, 
-  BookMarked, Users, Layers, ExternalLink, HardDrive, Printer
+  BookMarked, Users, Layers, ExternalLink, HardDrive, Printer, ShieldCheck, Lock, LogOut
 } from 'lucide-react';
 import { Book, Borrower, Loan, BookFetchResult } from './types';
 import { storageService } from './services/storageService';
 import { getSavedConfig } from './lib/supabase';
 import { soundService } from './services/soundService';
+import { authService, AdminUser } from './services/authService';
 
 import { Navbar } from './components/Navbar';
 import { BookCard } from './components/BookCard';
@@ -19,12 +20,20 @@ import { IssueReturnModal } from './components/IssueReturnModal';
 import { BarcodePrinterModal } from './components/BarcodePrinterModal';
 import { SupabaseSettingsModal } from './components/SupabaseSettingsModal';
 import { MembersView } from './components/MembersView';
+import { AdminLoginModal } from './components/AdminLoginModal';
+import { AdminChangePasswordModal } from './components/AdminChangePasswordModal';
 
 export function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [borrowers, setBorrowers] = useState<Borrower[]>([]);
   const [loans, setLoans] = useState<Loan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(() => authService.getCurrentUser());
+  const isAdmin = Boolean(currentUser);
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
+  const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
 
   // Navigation & Views
   const [activeTab, setActiveTab] = useState<'catalog' | 'circulation' | 'members'>('catalog');
@@ -81,6 +90,19 @@ export function App() {
     loadData();
   }, []);
 
+  // When logging out, revert to catalog tab
+  const handleLogout = () => {
+    authService.logout();
+    setCurrentUser(null);
+    setActiveTab('catalog');
+    soundService.playSuccess();
+  };
+
+  const handleLoginSuccess = (user: AdminUser) => {
+    setCurrentUser(user);
+    loadData();
+  };
+
   // Filtered & Sorted Books
   const genresList = useMemo(() => {
     const set = new Set<string>();
@@ -128,8 +150,12 @@ export function App() {
     return { totalTitles, totalCopies, availableCopies, borrowedCopies, overdueLoans, totalMembers };
   }, [books, loans, borrowers]);
 
-  // Handlers for Books
+  // Handlers for Books (Admin only)
   const handleSaveBook = async (bookData: Omit<Book, 'id' | 'created_at' | 'updated_at'>, id?: string) => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     if (id) {
       await storageService.updateBook(id, bookData);
     } else {
@@ -139,6 +165,10 @@ export function App() {
   };
 
   const handleDeleteBook = async (id: string) => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     const book = books.find(b => b.id === id);
     if (!book) return;
     if (confirm(`Are you sure you want to remove "${book.title}" from library inventory?`)) {
@@ -149,7 +179,19 @@ export function App() {
   };
 
   const handleBookFoundFromScan = (bookData: BookFetchResult, isbn: string) => {
-    // If book already exists in library catalog, open detail modal!
+    if (!isAdmin) {
+      // For public users scanning an ISBN to search:
+      const existing = books.find(b => b.isbn.replace(/[^0-9X]/gi, '') === isbn.replace(/[^0-9X]/gi, ''));
+      if (existing) {
+        setSelectedBook(existing);
+        setIsDetailOpen(true);
+      } else {
+        alert(`Book with ISBN ${isbn} is not currently registered in this library catalog.`);
+      }
+      return;
+    }
+
+    // Admin workflow:
     const existing = books.find(b => b.isbn.replace(/[^0-9X]/gi, '') === isbn.replace(/[^0-9X]/gi, ''));
     if (existing) {
       setSelectedBook(existing);
@@ -157,19 +199,26 @@ export function App() {
       return;
     }
 
-    // Otherwise, open the Book Form Modal pre-populated with online details
     setFormMode('add');
     setFormInitialData(bookData);
     setIsBookFormOpen(true);
   };
 
   const handleOpenManualAdd = () => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     setFormMode('add');
     setFormInitialData(null);
     setIsBookFormOpen(true);
   };
 
   const handleEditBook = (book: Book) => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     setFormMode('edit');
     setFormInitialData(book);
     setIsBookFormOpen(true);
@@ -182,35 +231,47 @@ export function App() {
   };
 
   const handleIssueBookTrigger = (book: Book) => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     setPreselectedBookForIssue(book);
     setIsIssueReturnOpen(true);
     setIsDetailOpen(false);
   };
 
   const handlePrintBarcodeTrigger = (book: Book) => {
+    if (!isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
     setPrinterInitialBook(book);
     setIsPrinterOpen(true);
   };
 
   // Handlers for Circulation
   const handleIssueBook = async (bookId: string, borrowerId: string, days: number, notes?: string) => {
+    if (!isAdmin) return;
     await storageService.borrowBook(bookId, borrowerId, days, notes);
     await loadData();
   };
 
   const handleReturnBook = async (loanId: string) => {
+    if (!isAdmin) return;
     await storageService.returnBook(loanId);
     await loadData();
   };
 
   // Handlers for Members
   const handleAddBorrower = async (data: Omit<Borrower, 'id' | 'created_at'>) => {
+    if (!isAdmin) return;
     await storageService.addBorrower(data);
     soundService.playSuccess();
     await loadData();
   };
 
   const handleDeleteBorrower = async (id: string) => {
+    if (!isAdmin) return;
     await storageService.deleteBorrower(id);
     soundService.playSuccess();
     await loadData();
@@ -256,12 +317,77 @@ export function App() {
         }}
         isSupabaseConnected={isSupabaseConnected}
         bookCount={books.length}
+        isAdmin={isAdmin}
+        adminUser={currentUser}
+        onOpenLogin={() => setIsAdminLoginOpen(true)}
+        onLogout={handleLogout}
+        onOpenAdminSettings={() => setIsAdminSettingsOpen(true)}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Supabase status warning banner if not connected */}
-        {!isSupabaseConnected && (
+        {/* Admin Session Banner if logged in */}
+        {isAdmin ? (
+          <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-md">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
+                <ShieldCheck className="w-5 h-5 text-brand-400" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm">
+                  Librarian Admin Session Active: <span className="text-brand-400">{currentUser?.name}</span> ({currentUser?.username})
+                </p>
+                <p className="text-slate-400 text-[11px] mt-0.5">
+                  You have full privileges to add books via barcode scanning, edit metadata, delete entries, and manage loans.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsAdminSettingsOpen(true)}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition"
+              >
+                Account Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 text-white font-bold rounded-lg transition flex items-center space-x-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Exit Admin</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Public Portal Notice */
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
+                <BookOpen className="w-5 h-5 text-brand-600" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-800 text-sm">
+                  Welcome to the Library Public Catalog
+                </p>
+                <p className="text-slate-500 text-[11px] mt-0.5">
+                  Browse available titles, check physical shelf locations, and search by ISBN or category.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsAdminLoginOpen(true)}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition flex items-center space-x-1.5 shadow-sm whitespace-nowrap"
+            >
+              <Lock className="w-3.5 h-3.5 text-brand-400" />
+              <span>Admin / Librarian Sign In</span>
+            </button>
+          </div>
+        )}
+
+        {/* Supabase status warning banner if not connected and admin is logged in */}
+        {isAdmin && !isSupabaseConnected && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs shadow-xs">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
@@ -269,10 +395,10 @@ export function App() {
               </div>
               <div>
                 <p className="font-bold text-amber-900">
-                  Demo Mode (Using Local Browser Storage with Preloaded Books)
+                  Demo Mode (Using Local Storage with Preloaded Books)
                 </p>
                 <p className="text-amber-700 mt-0.5">
-                  You can scan barcodes and add books immediately! To enable permanent cloud storage, connect your Supabase database.
+                  You can scan barcodes and add books immediately! Connect Supabase anytime for cloud storage.
                 </p>
               </div>
             </div>
@@ -307,37 +433,45 @@ export function App() {
             <div>
               <p className="text-[11px] uppercase font-bold text-slate-400">Available on Shelf</p>
               <p className="text-xl font-black text-emerald-700 mt-0.5">{stats.availableCopies}</p>
-              <p className="text-[10px] text-emerald-600 font-medium">Ready to borrow</p>
+              <p className="text-[10px] text-emerald-600 font-medium">Ready to read</p>
             </div>
           </div>
 
           <div 
-            onClick={() => setActiveTab('circulation')}
-            className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 cursor-pointer hover:border-brand-300 transition"
+            onClick={() => {
+              if (isAdmin) setActiveTab('circulation');
+            }}
+            className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 ${
+              isAdmin ? 'cursor-pointer hover:border-brand-300 transition' : ''
+            }`}
           >
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
               <BookMarked className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Checked Out</p>
+              <p className="text-[11px] uppercase font-bold text-slate-400">Currently Borrowed</p>
               <p className="text-xl font-black text-blue-700 mt-0.5">{stats.borrowedCopies}</p>
               <p className="text-[10px] text-blue-600 font-medium">
-                {stats.overdueLoans > 0 ? `${stats.overdueLoans} overdue` : 'All within due date'}
+                {stats.overdueLoans > 0 ? `${stats.overdueLoans} overdue` : 'On loan'}
               </p>
             </div>
           </div>
 
           <div 
-            onClick={() => setActiveTab('members')}
-            className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 cursor-pointer hover:border-brand-300 transition"
+            onClick={() => {
+              if (isAdmin) setActiveTab('members');
+            }}
+            className={`bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex items-center space-x-3.5 ${
+              isAdmin ? 'cursor-pointer hover:border-brand-300 transition' : ''
+            }`}
           >
             <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-[11px] uppercase font-bold text-slate-400">Library Members</p>
+              <p className="text-[11px] uppercase font-bold text-slate-400">Registered Patrons</p>
               <p className="text-xl font-black text-indigo-700 mt-0.5">{stats.totalMembers}</p>
-              <p className="text-[10px] text-indigo-600 font-medium">Active patrons</p>
+              <p className="text-[10px] text-indigo-600 font-medium">Active members</p>
             </div>
           </div>
         </div>
@@ -353,7 +487,7 @@ export function App() {
                   <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by Title, Author, ISBN barcode, Shelf..."
+                    placeholder="Search by Title, Author, ISBN, Shelf..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none transition"
@@ -392,18 +526,20 @@ export function App() {
                     </button>
                   </div>
 
-                  {/* Print Labels */}
-                  <button
-                    onClick={() => {
-                      setPrinterInitialBook(null);
-                      setIsPrinterOpen(true);
-                    }}
-                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5"
-                    title="Generate and print barcode stickers"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Print Barcodes</span>
-                  </button>
+                  {/* Print Labels (Admin only) */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        setPrinterInitialBook(null);
+                        setIsPrinterOpen(true);
+                      }}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5"
+                      title="Generate and print barcode stickers"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Print Barcodes</span>
+                    </button>
+                  )}
 
                   {/* Export CSV */}
                   <button
@@ -415,23 +551,34 @@ export function App() {
                     <span>Export</span>
                   </button>
 
-                  {/* Manual Entry Button */}
-                  <button
-                    onClick={handleOpenManualAdd}
-                    className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Book</span>
-                  </button>
+                  {/* Admin Book Actions */}
+                  {isAdmin ? (
+                    <>
+                      <button
+                        onClick={handleOpenManualAdd}
+                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Book</span>
+                      </button>
 
-                  {/* Scan Barcode Action */}
-                  <button
-                    onClick={() => setIsScannerOpen(true)}
-                    className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>Scan Barcode</span>
-                  </button>
+                      <button
+                        onClick={() => setIsScannerOpen(true)}
+                        className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span>Scan & Add</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsAdminLoginOpen(true)}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-brand-400" />
+                      <span>Admin Login</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -443,7 +590,6 @@ export function App() {
                     <span>Filters:</span>
                   </span>
 
-                  {/* Genre dropdown */}
                   <select
                     value={selectedGenre}
                     onChange={(e) => setSelectedGenre(e.target.value)}
@@ -455,21 +601,19 @@ export function App() {
                     ))}
                   </select>
 
-                  {/* Availability */}
                   <select
                     value={availabilityFilter}
                     onChange={(e) => setAvailabilityFilter(e.target.value as 'all' | 'available' | 'borrowed')}
                     className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-brand-500"
                   >
                     <option value="all">All Status</option>
-                    <option value="available">Available Only</option>
+                    <option value="available">Available on Shelf Only</option>
                     <option value="borrowed">Checked Out Only</option>
                   </select>
                 </div>
 
-                {/* Sort */}
                 <div className="flex items-center space-x-2">
-                  <span className="text-slate-400 font-medium">Sort by:</span>
+                  <span className="text-slate-400 font-medium">Sort:</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as 'newest' | 'title' | 'author' | 'stock')}
@@ -490,23 +634,25 @@ export function App() {
                 <BookOpen className="w-12 h-12 mx-auto text-slate-300 mb-3" />
                 <h3 className="font-bold text-slate-800 text-base">No matching books found</h3>
                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  {searchQuery ? `No results for "${searchQuery}". Try different keywords or scan a barcode.` : 'Start adding books to your library by scanning barcodes or manual entry!'}
+                  {searchQuery ? `No results for "${searchQuery}". Try different keywords.` : 'No books in this section.'}
                 </p>
-                <div className="mt-5 flex items-center justify-center space-x-3">
-                  <button
-                    onClick={() => setIsScannerOpen(true)}
-                    className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>Scan Barcode</span>
-                  </button>
-                  <button
-                    onClick={handleOpenManualAdd}
-                    className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
-                  >
-                    <span>Manual Entry</span>
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="mt-5 flex items-center justify-center space-x-3">
+                    <button
+                      onClick={() => setIsScannerOpen(true)}
+                      className="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm"
+                    >
+                      <Camera className="w-4 h-4" />
+                      <span>Scan Barcode</span>
+                    </button>
+                    <button
+                      onClick={handleOpenManualAdd}
+                      className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
+                    >
+                      <span>Manual Entry</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
@@ -514,6 +660,7 @@ export function App() {
                   <BookCard
                     key={book.id}
                     book={book}
+                    isAdmin={isAdmin}
                     onView={handleViewBook}
                     onEdit={handleEditBook}
                     onIssue={handleIssueBookTrigger}
@@ -525,6 +672,7 @@ export function App() {
             ) : (
               <BookTableView
                 books={filteredBooks}
+                isAdmin={isAdmin}
                 onView={handleViewBook}
                 onEdit={handleEditBook}
                 onIssue={handleIssueBookTrigger}
@@ -535,8 +683,8 @@ export function App() {
           </div>
         )}
 
-        {/* Circulation Tab View */}
-        {activeTab === 'circulation' && (
+        {/* Circulation Tab View (Admin only) */}
+        {activeTab === 'circulation' && isAdmin && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
               <div>
@@ -657,8 +805,8 @@ export function App() {
           </div>
         )}
 
-        {/* Members Tab View */}
-        {activeTab === 'members' && (
+        {/* Members Tab View (Admin only) */}
+        {activeTab === 'members' && isAdmin && (
           <MembersView
             borrowers={borrowers}
             onAddBorrower={handleAddBorrower}
@@ -684,11 +832,13 @@ export function App() {
 
       <BookDetailModal
         book={selectedBook}
+        isAdmin={isAdmin}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         onEdit={handleEditBook}
         onIssue={handleIssueBookTrigger}
         onPrintBarcode={handlePrintBarcodeTrigger}
+        onOpenLogin={() => setIsAdminLoginOpen(true)}
       />
 
       <IssueReturnModal
@@ -717,6 +867,22 @@ export function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onConfigChanged={loadData}
+      />
+
+      {/* Admin Auth Modals */}
+      <AdminLoginModal
+        isOpen={isAdminLoginOpen}
+        onClose={() => setIsAdminLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      <AdminChangePasswordModal
+        isOpen={isAdminSettingsOpen}
+        onClose={() => setIsAdminSettingsOpen(false)}
+        currentUser={currentUser}
+        onCredentialsUpdated={() => {
+          setCurrentUser(authService.getCurrentUser());
+        }}
       />
     </div>
   );

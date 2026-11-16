@@ -4,6 +4,30 @@ A modern, full-featured Library Management System built with **React**, **TypeSc
 
 ---
 
+## 🔐 Role-Based Access Control (Admin vs Public Guests)
+
+The system now features a dedicated **Admin & Librarian Authentication Panel**:
+
+- **Public / Guest Users**:
+  - Can search and browse the full catalog.
+  - Can check real-time physical availability (number of copies on shelf, shelf rack, synopsis, author, genre).
+  - Restricted from adding, editing, or deleting books, issuing/returning loans, viewing member records, or modifying database settings.
+- **Admin / Librarian**:
+  - Has full privileged access to:
+    - **Add Books** (via Barcode Scan or Manual Entry)
+    - **Edit** any book details
+    - **Delete** books from inventory
+    - **Circulation Desk** (Check-out & Check-in / Return)
+    - **Member Management**
+    - **Barcode Sticker Printing**
+    - **Supabase Cloud Settings**
+  - **Default Admin Credentials**:
+    - **Username**: `admin`
+    - **Password**: `admin123`
+  - *Tip: Admins can change their username and password anytime via the key icon in the top navigation!*
+
+---
+
 ## ✨ Features
 
 ### 1. 📷 Dual-Mode Book Cataloging

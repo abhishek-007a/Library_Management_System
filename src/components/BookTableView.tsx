@@ -5,6 +5,7 @@ import { MapPin, Printer, Bookmark, Edit, Trash2, ExternalLink } from 'lucide-re
 
 interface BookTableViewProps {
   books: Book[];
+  isAdmin: boolean;
   onView: (book: Book) => void;
   onEdit: (book: Book) => void;
   onIssue: (book: Book) => void;
@@ -14,6 +15,7 @@ interface BookTableViewProps {
 
 export const BookTableView: React.FC<BookTableViewProps> = ({
   books,
+  isAdmin,
   onView,
   onEdit,
   onIssue,
@@ -30,8 +32,8 @@ export const BookTableView: React.FC<BookTableViewProps> = ({
               <th className="px-4 py-3">ISBN & Barcode</th>
               <th className="px-4 py-3">Genre</th>
               <th className="px-4 py-3">Shelf</th>
-              <th className="px-4 py-3 text-center">Stock</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+              <th className="px-4 py-3 text-center">Availability</th>
+              <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -95,52 +97,61 @@ export const BookTableView: React.FC<BookTableViewProps> = ({
                   {/* Stock */}
                   <td className="px-4 py-3 whitespace-nowrap text-center">
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         isAvailable
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
-                      {book.available_copies} / {book.total_copies}
+                      {book.available_copies} / {book.total_copies} Left
                     </span>
                   </td>
 
                   {/* Actions */}
                   <td className="px-4 py-3 whitespace-nowrap text-right">
-                    <div className="flex items-center justify-end space-x-1.5">
-                      <button
-                        onClick={() => onPrintBarcode(book)}
-                        title="Print Barcode Label"
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
+                    {isAdmin ? (
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <button
+                          onClick={() => onPrintBarcode(book)}
+                          title="Print Barcode Label"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
 
-                      <button
-                        onClick={() => onEdit(book)}
-                        title="Edit Book"
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
+                        <button
+                          onClick={() => onEdit(book)}
+                          title="Edit Book Details"
+                          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
 
-                      <button
-                        onClick={() => onDelete(book.id)}
-                        title="Delete Book"
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <button
+                          onClick={() => onDelete(book.id)}
+                          title="Delete Book"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
 
+                        <button
+                          onClick={() => onIssue(book)}
+                          disabled={!isAvailable}
+                          className="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-sm"
+                        >
+                          <Bookmark className="w-3 h-3" />
+                          <span>Issue</span>
+                        </button>
+                      </div>
+                    ) : (
                       <button
-                        onClick={() => onIssue(book)}
-                        disabled={!isAvailable}
-                        className="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-sm"
+                        onClick={() => onView(book)}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg transition"
                       >
-                        <Bookmark className="w-3 h-3" />
-                        <span>Issue</span>
+                        Details
                       </button>
-                    </div>
+                    )}
                   </td>
                 </tr>
               );

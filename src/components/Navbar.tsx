@@ -1,5 +1,6 @@
 import React from 'react';
-import { BookOpen, Camera, Plus, Database, Users, Bookmark, Layers, Cloud, HardDrive, Printer } from 'lucide-react';
+import { BookOpen, Camera, Plus, Users, Bookmark, Layers, Cloud, HardDrive, Printer, ShieldCheck, Lock, LogOut, KeyRound } from 'lucide-react';
+import { AdminUser } from '../services/authService';
 
 interface NavbarProps {
   activeTab: 'catalog' | 'circulation' | 'members';
@@ -10,6 +11,11 @@ interface NavbarProps {
   onOpenPrinter: () => void;
   isSupabaseConnected: boolean;
   bookCount: number;
+  isAdmin: boolean;
+  adminUser: AdminUser | null;
+  onOpenLogin: () => void;
+  onLogout: () => void;
+  onOpenAdminSettings: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,7 +26,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onOpenPrinter,
   isSupabaseConnected,
-  bookCount
+  bookCount,
+  isAdmin,
+  adminUser,
+  onOpenLogin,
+  onLogout,
+  onOpenAdminSettings
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs no-print">
@@ -35,10 +46,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center space-x-2">
                 <span className="text-lg font-black tracking-tight text-slate-900">Libro<span className="text-brand-600">Scan</span></span>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
-                  LMS v2.0
+                  {isAdmin ? 'Admin Mode' : 'Catalog Portal'}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 -mt-0.5 font-medium">Barcode & Supabase Library System</p>
+              <p className="text-[11px] text-slate-500 -mt-0.5 font-medium">
+                {isAdmin ? `Librarian: ${adminUser?.name || 'Administrator'}` : 'Public Book Availability & Search'}
+              </p>
             </div>
           </div>
 
@@ -53,85 +66,122 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Book Catalog ({bookCount})</span>
+              <span>Available Books ({bookCount})</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('circulation')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'circulation'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              <span>Circulation / Loans</span>
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setActiveTab('circulation')}
+                  className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                    activeTab === 'circulation'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  <span>Circulation & Loans</span>
+                </button>
 
-            <button
-              onClick={() => setActiveTab('members')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'members'
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Members</span>
-            </button>
+                <button
+                  onClick={() => setActiveTab('members')}
+                  className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                    activeTab === 'members'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Members</span>
+                </button>
+              </>
+            )}
           </nav>
 
-          {/* Right actions: Supabase status & Action Buttons */}
+          {/* Right actions */}
           <div className="flex items-center space-x-2.5">
-            {/* Supabase status badge */}
-            <button
-              onClick={onOpenSettings}
-              title="Configure Supabase Database"
-              className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
-                isSupabaseConnected
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-              }`}
-            >
-              {isSupabaseConnected ? (
-                <>
-                  <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Supabase Live</span>
-                </>
-              ) : (
-                <>
-                  <HardDrive className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Demo Mode (Local)</span>
-                </>
-              )}
-            </button>
+            {isAdmin ? (
+              <>
+                {/* Supabase status badge */}
+                <button
+                  onClick={onOpenSettings}
+                  title="Configure Supabase Database"
+                  className={`hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                    isSupabaseConnected
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  {isSupabaseConnected ? (
+                    <>
+                      <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Supabase Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <HardDrive className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Local Demo</span>
+                    </>
+                  )}
+                </button>
 
-            {/* Print Barcodes Button */}
-            <button
-              onClick={onOpenPrinter}
-              title="Print Barcode Labels"
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition"
-            >
-              <Printer className="w-4 h-4" />
-            </button>
+                {/* Print Barcodes Button */}
+                <button
+                  onClick={onOpenPrinter}
+                  title="Print Barcode Labels"
+                  className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl border border-slate-200 transition"
+                >
+                  <Printer className="w-4 h-4" />
+                </button>
 
-            {/* Manual Add Button */}
-            <button
-              onClick={onOpenAddModal}
-              className="hidden lg:flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
-            >
-              <Plus className="w-4 h-4 text-slate-500" />
-              <span>Manual Entry</span>
-            </button>
+                {/* Manual Add Button */}
+                <button
+                  onClick={onOpenAddModal}
+                  className="hidden lg:flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
+                >
+                  <Plus className="w-4 h-4 text-slate-500" />
+                  <span>Manual Entry</span>
+                </button>
 
-            {/* Primary Action: Barcode Scanner */}
-            <button
-              onClick={onOpenScanner}
-              className="px-4 py-2 bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-700 hover:to-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-2 shadow-md shadow-brand-500/25 active:scale-95"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Scan Barcode</span>
-            </button>
+                {/* Primary Action: Barcode Scanner */}
+                <button
+                  onClick={onOpenScanner}
+                  className="px-4 py-2 bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-700 hover:to-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-2 shadow-md shadow-brand-500/25 active:scale-95"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Scan Barcode</span>
+                </button>
+
+                {/* Admin Menu / Sign Out */}
+                <div className="flex items-center space-x-1 pl-1 border-l border-slate-200">
+                  <button
+                    onClick={onOpenAdminSettings}
+                    title="Change Admin Password / Username"
+                    className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={onLogout}
+                    title="Sign Out of Admin Mode"
+                    className="flex items-center space-x-1 px-3 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 font-bold text-xs rounded-xl transition border border-slate-200"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Public Visitor Actions */
+              <button
+                onClick={onOpenLogin}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center space-x-2 shadow-md hover:shadow-lg active:scale-95"
+              >
+                <Lock className="w-3.5 h-3.5 text-brand-400" />
+                <span>Admin Login</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -141,26 +191,30 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setActiveTab('catalog')}
             className={`py-1 ${activeTab === 'catalog' ? 'text-brand-600 font-bold border-b-2 border-brand-500' : 'text-slate-500'}`}
           >
-            Catalog
+            Available Books
           </button>
-          <button
-            onClick={() => setActiveTab('circulation')}
-            className={`py-1 ${activeTab === 'circulation' ? 'text-brand-600 font-bold border-b-2 border-brand-500' : 'text-slate-500'}`}
-          >
-            Circulation
-          </button>
-          <button
-            onClick={() => setActiveTab('members')}
-            className={`py-1 ${activeTab === 'members' ? 'text-brand-600 font-bold border-b-2 border-brand-500' : 'text-slate-500'}`}
-          >
-            Members
-          </button>
-          <button
-            onClick={onOpenSettings}
-            className="py-1 text-slate-500"
-          >
-            Database
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => setActiveTab('circulation')}
+                className={`py-1 ${activeTab === 'circulation' ? 'text-brand-600 font-bold border-b-2 border-brand-500' : 'text-slate-500'}`}
+              >
+                Circulation
+              </button>
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`py-1 ${activeTab === 'members' ? 'text-brand-600 font-bold border-b-2 border-brand-500' : 'text-slate-500'}`}
+              >
+                Members
+              </button>
+              <button
+                onClick={onOpenSettings}
+                className="py-1 text-slate-500"
+              >
+                Database
+              </button>
+            </>
+          )}
         </div>
       </div>
     </header>

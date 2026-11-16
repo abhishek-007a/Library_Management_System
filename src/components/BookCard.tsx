@@ -1,10 +1,11 @@
 import React from 'react';
 import { Book } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
-import { MapPin, Printer, Bookmark, MoreVertical, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { MapPin, Printer, Bookmark, Edit, Trash2, ExternalLink, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface BookCardProps {
   book: Book;
+  isAdmin: boolean;
   onView: (book: Book) => void;
   onEdit: (book: Book) => void;
   onIssue: (book: Book) => void;
@@ -14,6 +15,7 @@ interface BookCardProps {
 
 export const BookCard: React.FC<BookCardProps> = ({
   book,
+  isAdmin,
   onView,
   onEdit,
   onIssue,
@@ -55,7 +57,7 @@ export const BookCard: React.FC<BookCardProps> = ({
                   : 'bg-rose-50 text-rose-700 border border-rose-200'
               }`}
             >
-              {book.available_copies}/{book.total_copies} Left
+              {isAvailable ? `${book.available_copies} Available` : 'Checked Out'}
             </span>
           </div>
 
@@ -80,16 +82,18 @@ export const BookCard: React.FC<BookCardProps> = ({
       {/* Barcode Strip */}
       <div className="px-4 py-2 mt-auto border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div className="scale-90 origin-left">
-          <BarcodeRenderer value={book.isbn} height={28} width={1.1} fontSize={9} />
+          <BarcodeRenderer value={book.isbn} height={26} width={1.1} fontSize={9} />
         </div>
 
-        <button
-          onClick={() => onPrintBarcode(book)}
-          title="Print Barcode Label"
-          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 rounded-md transition"
-        >
-          <Printer className="w-4 h-4" />
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => onPrintBarcode(book)}
+            title="Print Barcode Label"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 rounded-md transition"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Card Actions Footer */}
@@ -99,35 +103,41 @@ export const BookCard: React.FC<BookCardProps> = ({
           className="text-slate-600 hover:text-slate-900 font-semibold flex items-center space-x-1"
         >
           <ExternalLink className="w-3.5 h-3.5" />
-          <span>Details</span>
+          <span>View Details</span>
         </button>
 
-        <div className="flex items-center space-x-1">
-          <button
-            onClick={() => onEdit(book)}
-            title="Edit Book"
-            className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition"
-          >
-            <Edit className="w-3.5 h-3.5" />
-          </button>
+        {isAdmin ? (
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => onEdit(book)}
+              title="Edit Book Details"
+              className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition"
+            >
+              <Edit className="w-3.5 h-3.5" />
+            </button>
 
-          <button
-            onClick={() => onDelete(book.id)}
-            title="Delete Book"
-            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <button
+              onClick={() => onDelete(book.id)}
+              title="Delete Book"
+              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
 
-          <button
-            onClick={() => onIssue(book)}
-            disabled={!isAvailable}
-            className="ml-1 px-2.5 py-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-[11px] rounded-lg transition flex items-center space-x-1 shadow-sm"
-          >
-            <Bookmark className="w-3 h-3" />
-            <span>Issue</span>
-          </button>
-        </div>
+            <button
+              onClick={() => onIssue(book)}
+              disabled={!isAvailable}
+              className="ml-1 px-2.5 py-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white font-bold text-[11px] rounded-lg transition flex items-center space-x-1 shadow-sm"
+            >
+              <Bookmark className="w-3 h-3" />
+              <span>Issue</span>
+            </button>
+          </div>
+        ) : (
+          <span className="text-[11px] font-semibold text-slate-500">
+            {isAvailable ? `${book.available_copies} of ${book.total_copies} on shelf` : 'All copies currently on loan'}
+          </span>
+        )}
       </div>
     </div>
   );
