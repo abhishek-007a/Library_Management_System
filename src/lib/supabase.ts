@@ -3,9 +3,9 @@ import { SupabaseConfig } from '../types';
 
 const STORAGE_KEY = 'libro_supabase_config';
 
-// Pre-fill from environment if present
-const DEFAULT_URL = (import.meta as { env?: Record<string, string> })?.env?.VITE_SUPABASE_URL || '';
-const DEFAULT_KEY = (import.meta as { env?: Record<string, string> })?.env?.VITE_SUPABASE_ANON_KEY || '';
+// Pre-fill from environment if present, with project credentials as default fallback
+const DEFAULT_URL = (import.meta as { env?: Record<string, string> })?.env?.VITE_SUPABASE_URL || 'https://cfdjasgotleksnamvrqu.supabase.co';
+const DEFAULT_KEY = (import.meta as { env?: Record<string, string> })?.env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_l0MHLnQKk7qWjmImsVgaWQ_JyWkUmMe';
 
 export function getSavedConfig(): SupabaseConfig {
   try {

@@ -382,33 +382,6 @@ export function App() {
           </div>
         )}
 
-        {/* Supabase status warning banner if not connected and admin is logged in */}
-        {isAdmin && !isSupabaseConnected && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs shadow-xs">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl flex-shrink-0">
-                <HardDrive className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-amber-900">
-                  Demo Mode (Using Local Storage with Preloaded Books)
-                </p>
-                <p className="text-amber-700 mt-0.5 text-[11px]">
-                  You can scan barcodes and add books immediately! Connect Supabase anytime for cloud storage.
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition flex items-center justify-center space-x-1.5 shadow-sm whitespace-nowrap text-xs"
-            >
-              <Cloud className="w-4 h-4" />
-              <span>Connect Supabase</span>
-            </button>
-          </div>
-        )}
-
         {/* Dashboard Stat KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
           <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-slate-200/80 shadow-xs flex items-center space-x-2.5 sm:space-x-3.5">
