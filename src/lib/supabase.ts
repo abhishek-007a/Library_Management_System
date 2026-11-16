@@ -157,10 +157,23 @@ CREATE INDEX IF NOT EXISTS idx_loans_book_id ON public.loans(book_id);
 CREATE INDEX IF NOT EXISTS idx_loans_borrower_id ON public.loans(borrower_id);
 CREATE INDEX IF NOT EXISTS idx_loans_status ON public.loans(status);
 
--- 4. Enable Row Level Security (RLS) & Public Access Policies
+-- 4. Create Admin Users Table (For Multi-Device Authentication)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username VARCHAR(64) UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    name VARCHAR(100) DEFAULT 'Head Librarian',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_users_username ON public.admin_users(username);
+
+-- 5. Enable Row Level Security (RLS) & Public Access Policies
 ALTER TABLE public.books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.borrowers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read/write for library app with anon key
 DROP POLICY IF EXISTS "Allow public read-write for books" ON public.books;
@@ -172,7 +185,15 @@ CREATE POLICY "Allow public read-write for borrowers" ON public.borrowers FOR AL
 DROP POLICY IF EXISTS "Allow public read-write for loans" ON public.loans;
 CREATE POLICY "Allow public read-write for loans" ON public.loans FOR ALL USING (true) WITH CHECK (true);
 
--- 5. Seed Starter Books with Valid Real ISBNs
+DROP POLICY IF EXISTS "Allow public read-write for admin_users" ON public.admin_users;
+CREATE POLICY "Allow public read-write for admin_users" ON public.admin_users FOR ALL USING (true) WITH CHECK (true);
+
+-- 6. Seed Initial Data
+INSERT INTO public.admin_users (username, password, name)
+VALUES ('admin', 'admin123', 'Head Librarian')
+ON CONFLICT (username) DO NOTHING;
+
+-- Seed Starter Books with Valid Real ISBNs
 INSERT INTO public.books (isbn, title, author, publisher, published_date, page_count, genre, description, cover_url, total_copies, available_copies, location_shelf)
 VALUES 
 ('9780132350884', 'Clean Code: A Handbook of Agile Software Craftsmanship', 'Robert C. Martin', 'Prentice Hall', '2008', 464, 'Technology', 'Even bad code can function. But if code isn''t clean, it can bring a development organization to its knees.', 'https://covers.openlibrary.org/b/isbn/9780132350884-L.jpg', 3, 3, 'Shelf CS-01'),

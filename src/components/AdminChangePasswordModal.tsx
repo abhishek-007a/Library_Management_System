@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, KeyRound, Check, AlertCircle, Shield } from 'lucide-react';
+import { X, KeyRound, Check, AlertCircle, Shield, Loader2 } from 'lucide-react';
 import { authService, AdminUser } from '../services/authService';
 import { soundService } from '../services/soundService';
 
@@ -23,10 +23,11 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -40,17 +41,25 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
       return;
     }
 
-    const res = authService.updateCredentials(currentPassword, newUsername, newPassword, newName);
-    if (res.success) {
-      soundService.playSuccess();
-      setSuccess(true);
-      onCredentialsUpdated();
-      setTimeout(() => {
-        onClose();
-      }, 1500);
-    } else {
+    setIsSubmitting(true);
+    try {
+      const res = await authService.updateCredentials(currentPassword, newUsername, newPassword, newName);
+      if (res.success) {
+        soundService.playSuccess();
+        setSuccess(true);
+        onCredentialsUpdated();
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        soundService.playError();
+        setError(res.error || 'Failed to update credentials.');
+      }
+    } catch {
       soundService.playError();
-      setError(res.error || 'Failed to update credentials.');
+      setError('Failed to update credentials in database.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -167,9 +176,17 @@ export const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> =
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-lg shadow-sm"
+              disabled={isSubmitting}
+              className="px-5 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold rounded-lg shadow-sm flex items-center space-x-1.5"
             >
-              Save Credentials
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Updating Database...</span>
+                </>
+              ) : (
+                <span>Save Credentials</span>
+              )}
             </button>
           </div>
         </form>

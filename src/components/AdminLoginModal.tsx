@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { X, ShieldCheck, Lock, User, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { authService, AdminUser } from '../services/authService';
 import { soundService } from '../services/soundService';
 
@@ -18,21 +18,30 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
-    const res = authService.login(username, password);
-    if (res.success && res.user) {
-      soundService.playSuccess();
-      onLoginSuccess(res.user);
-      onClose();
-    } else {
+    try {
+      const res = await authService.login(username, password);
+      if (res.success && res.user) {
+        soundService.playSuccess();
+        onLoginSuccess(res.user);
+        onClose();
+      } else {
+        soundService.playError();
+        setError(res.error || 'Authentication failed');
+      }
+    } catch {
       soundService.playError();
-      setError(res.error || 'Authentication failed');
+      setError('An unexpected error occurred during login.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -120,10 +129,20 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-brand-500/25"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-brand-500/25"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Unlock Admin Access</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Signing In...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Unlock Admin Access</span>
+                </>
+              )}
             </button>
           </div>
         </form>
