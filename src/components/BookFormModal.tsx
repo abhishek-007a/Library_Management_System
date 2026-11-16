@@ -1,0 +1,489 @@
+import React, { useState, useEffect } from 'react';
+import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Book, BookFetchResult } from '../types';
+import { BarcodeRenderer } from './BarcodeRenderer';
+import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
+import { soundService } from '../services/soundService';
+
+interface BookFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (bookData: Omit<Book, 'id' | 'created_at' | 'updated_at'>, id?: string) => Promise<void>;
+  initialData?: Book | BookFetchResult | null;
+  mode?: 'add' | 'edit';
+}
+
+const COMMON_GENRES = [
+  'Technology',
+  'Computer Science',
+  'Classic Fiction',
+  'Dystopian Fiction',
+  'Science',
+  'History',
+  'Philosophy',
+  'Biography',
+  'Self-Help',
+  'Business & Economics',
+  'Psychology',
+  'Fantasy',
+  'Mystery & Thriller'
+];
+
+export const BookFormModal: React.FC<BookFormModalProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialData,
+  mode = 'add'
+}) => {
+  const [formData, setFormData] = useState({
+    isbn: '',
+    title: '',
+    author: '',
+    publisher: '',
+    published_date: '',
+    page_count: '' as string | number,
+    genre: 'General',
+    description: '',
+    cover_url: '',
+    total_copies: 1,
+    available_copies: 1,
+    location_shelf: 'Shelf A-01',
+    status: 'available' as Book['status']
+  });
+
+  const [isFetchingIsbn, setIsFetchingIsbn] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        isbn: initialData.isbn || '',
+        title: initialData.title || '',
+        author: initialData.author || '',
+        publisher: initialData.publisher || '',
+        published_date: initialData.published_date || '',
+        page_count: initialData.page_count ?? '',
+        genre: initialData.genre || 'General',
+        description: initialData.description || '',
+        cover_url: initialData.cover_url || '',
+        total_copies: ('total_copies' in initialData ? initialData.total_copies : 1),
+        available_copies: ('available_copies' in initialData ? initialData.available_copies : 1),
+        location_shelf: ('location_shelf' in initialData ? initialData.location_shelf : 'Shelf A-01'),
+        status: ('status' in initialData ? initialData.status : 'available')
+      });
+    } else {
+      setFormData({
+        isbn: '',
+        title: '',
+        author: '',
+        publisher: '',
+        published_date: '',
+        page_count: '',
+        genre: 'General',
+        description: '',
+        cover_url: '',
+        total_copies: 1,
+        available_copies: 1,
+        location_shelf: 'Shelf A-01',
+        status: 'available'
+      });
+    }
+    setFetchError(null);
+  }, [initialData, isOpen]);
+
+  const handleIsbnQuickLookup = async () => {
+    const cleaned = cleanISBN(formData.isbn);
+    if (!cleaned) {
+      setFetchError('Please enter an ISBN code first.');
+      return;
+    }
+
+    setIsFetchingIsbn(true);
+    setFetchError(null);
+
+    try {
+      const result = await fetchBookByISBN(cleaned);
+      soundService.playSuccess();
+      setFormData(prev => ({
+        ...prev,
+        isbn: cleaned,
+        title: result.title || prev.title,
+        author: result.author || prev.author,
+        publisher: result.publisher || prev.publisher,
+        published_date: result.published_date || prev.published_date,
+        page_count: result.page_count ?? prev.page_count,
+        genre: result.genre || prev.genre,
+        description: result.description || prev.description,
+        cover_url: result.cover_url || prev.cover_url
+      }));
+    } catch (err: unknown) {
+      soundService.playError();
+      setFetchError(err instanceof Error ? err.message : 'Book not found online. You can enter details manually.');
+    } finally {
+      setIsFetchingIsbn(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim() || !formData.isbn.trim()) {
+      alert('Please provide at least a Title and ISBN.');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const payload: Omit<Book, 'id' | 'created_at' | 'updated_at'> = {
+        isbn: cleanISBN(formData.isbn) || formData.isbn.trim(),
+        title: formData.title.trim(),
+        author: formData.author.trim() || 'Unknown Author',
+        publisher: formData.publisher.trim() || undefined,
+        published_date: formData.published_date.trim() || undefined,
+        page_count: formData.page_count ? Number(formData.page_count) : undefined,
+        genre: formData.genre.trim() || 'General',
+        description: formData.description.trim() || undefined,
+        cover_url: formData.cover_url.trim() || undefined,
+        total_copies: Math.max(1, Number(formData.total_copies) || 1),
+        available_copies: Math.max(0, Number(formData.available_copies) || 0),
+        location_shelf: formData.location_shelf.trim() || 'Shelf A-01',
+        status: formData.status
+      };
+
+      const existingId = initialData && 'id' in initialData ? (initialData as Book).id : undefined;
+      await onSave(payload, existingId);
+      soundService.playSuccess();
+      onClose();
+    } catch (err) {
+      console.error('Failed to save book:', err);
+      alert('Error saving book to database.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[92vh]">
+        {/* Header */}
+        <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-brand-500/20 text-brand-400 rounded-xl border border-brand-500/30">
+              <BookOpen className="w-5 h-5 text-brand-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                {mode === 'edit' ? 'Edit Book Details' : 'Add Book to Library'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                Auto-fill details via ISBN lookup or enter details manually
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="overflow-y-auto p-6 space-y-6 flex-1">
+          {/* Quick Lookup Toolbar */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+              ISBN / Barcode Number
+            </label>
+            <div className="flex space-x-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 9780132350884"
+                  value={formData.isbn}
+                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleIsbnQuickLookup}
+                disabled={isFetchingIsbn || !formData.isbn.trim()}
+                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+              >
+                {isFetchingIsbn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Fetching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Auto-Fill Online</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {fetchError && (
+              <div className="mt-2 text-xs text-amber-700 flex items-center space-x-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                <span>{fetchError}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Column: Cover Preview & Barcode */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Cover Image Preview
+                </label>
+                <div className="w-full aspect-[2/3] max-w-[190px] mx-auto bg-slate-100 rounded-xl border border-slate-200 overflow-hidden shadow-inner flex items-center justify-center relative group">
+                  {formData.cover_url ? (
+                    <img
+                      src={formData.cover_url}
+                      alt="Cover Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80';
+                      }}
+                    />
+                  ) : (
+                    <div className="p-4 text-center text-slate-400 flex flex-col items-center">
+                      <ImageIcon className="w-8 h-8 mb-1" />
+                      <span className="text-[11px]">No cover specified</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Cover Image URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={formData.cover_url}
+                  onChange={(e) => setFormData({ ...formData, cover_url: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Scannable Barcode Live Preview */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Generated Barcode Sticker
+                </label>
+                <div className="flex justify-center p-2 bg-slate-50 border border-slate-200 rounded-xl">
+                  {formData.isbn ? (
+                    <BarcodeRenderer value={formData.isbn} height={40} width={1.4} fontSize={10} />
+                  ) : (
+                    <span className="text-xs text-slate-400 py-3">Enter an ISBN to see barcode</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Metadata fields */}
+            <div className="md:col-span-2 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Book Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Clean Code"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Author(s) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Robert C. Martin"
+                    value={formData.author}
+                    onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                    Genre / Category
+                  </label>
+                  <input
+                    type="text"
+                    list="genre-list"
+                    placeholder="e.g. Technology"
+                    value={formData.genre}
+                    onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                  <datalist id="genre-list">
+                    {COMMON_GENRES.map(g => (
+                      <option key={g} value={g} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Publisher
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Prentice Hall"
+                    value={formData.publisher}
+                    onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Published Year
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2008"
+                    value={formData.published_date}
+                    onChange={(e) => setFormData({ ...formData, published_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    Pages
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 464"
+                    value={formData.page_count}
+                    onChange={(e) => setFormData({ ...formData, page_count: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Inventory & Location Fields */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center space-x-1">
+                    <Layers className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Total Copies</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={formData.total_copies}
+                    onChange={(e) => {
+                      const total = Number(e.target.value);
+                      setFormData({
+                        ...formData,
+                        total_copies: total,
+                        available_copies: Math.min(formData.available_copies, total)
+                      });
+                    }}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center space-x-1">
+                    <Hash className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Available Copies</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={formData.total_copies}
+                    required
+                    value={formData.available_copies}
+                    onChange={(e) => setFormData({ ...formData, available_copies: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-semibold focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1 flex items-center space-x-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Shelf Location</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Shelf CS-01"
+                    value={formData.location_shelf}
+                    onChange={(e) => setFormData({ ...formData, location_shelf: e.target.value })}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Description / Summary
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Brief overview of the book..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-slate-50 transition"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition flex items-center space-x-2 shadow-sm"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving to Database...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>{mode === 'edit' ? 'Update Book' : 'Save Book to Database'}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
