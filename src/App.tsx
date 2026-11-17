@@ -789,6 +789,7 @@ export function App() {
         scannerMode={scannerMode}
         onReturnScan={handleReturnScan}
         onBookFound={handleBookFoundFromScan}
+        existingBooks={books}
       />
 
       <BookFormModal

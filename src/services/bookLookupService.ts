@@ -16,9 +16,16 @@ export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResul
     throw new Error('Please enter a valid ISBN code.');
   }
 
-  // Attempt 1: Open Library API (Data API + Books API)
+  // Attempt 1: Open Library Data API
   try {
-    const openLibRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const openLibRes = await fetch(
+      `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
     if (openLibRes.ok) {
       const data = await openLibRes.json();
       const bookData = data[`ISBN:${isbn}`];
@@ -61,12 +68,60 @@ export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResul
       }
     }
   } catch (err) {
-    console.warn('OpenLibrary fetch failed or timed out, trying Google Books fallback...', err);
+    console.warn('OpenLibrary data fetch failed or timed out:', err);
   }
 
-  // Attempt 2: Google Books API fallback
+  // Attempt 2: Open Library Search API
   try {
-    const gbooksRes = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const searchRes = await fetch(
+      `https://openlibrary.org/search.json?q=isbn:${isbn}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (searchRes.ok) {
+      const sdata = await searchRes.json();
+      if (sdata.docs && sdata.docs.length > 0) {
+        const doc = sdata.docs[0];
+        const title = doc.title;
+        const authors = doc.author_name?.join(', ') || 'Unknown Author';
+        const publisher = doc.publisher?.[0] || '';
+        const publishedDate = doc.first_publish_year ? String(doc.first_publish_year) : '';
+        const pageCount = doc.number_of_pages_median || undefined;
+        const coverUrl = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+
+        if (title) {
+          return {
+            title,
+            author: authors,
+            publisher,
+            published_date: publishedDate,
+            page_count: pageCount,
+            genre: doc.subject?.slice(0, 2).join(', ') || 'General',
+            description: '',
+            cover_url: coverUrl,
+            isbn,
+            source: 'openlibrary_search'
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('OpenLibrary search API failed or timed out:', err);
+  }
+
+  // Attempt 3: Google Books API fallback
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const gbooksRes = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
     if (gbooksRes.ok) {
       const gdata = await gbooksRes.json();
       if (gdata.items && gdata.items.length > 0) {

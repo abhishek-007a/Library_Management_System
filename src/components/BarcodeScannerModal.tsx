@@ -3,7 +3,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Camera, Upload, Keyboard, Search, X, Loader2, Sparkles, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
 import { soundService } from '../services/soundService';
-import { BookFetchResult } from '../types';
+import { Book, BookFetchResult } from '../types';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -13,6 +13,7 @@ interface BarcodeScannerModalProps {
   scannerMode?: 'catalog' | 'return';
   title?: string;
   subtitle?: string;
+  existingBooks?: Book[];
 }
 
 export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
@@ -22,7 +23,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onReturnScan,
   scannerMode = 'catalog',
   title,
-  subtitle
+  subtitle,
+  existingBooks = []
 }) => {
   const resolvedTitle = title || (scannerMode === 'return' ? 'Scan Book to Return / Check-In' : 'Scan Book ISBN / Barcode');
   const resolvedSubtitle = subtitle || (scannerMode === 'return' ? 'Point your camera at the returned book barcode to check it in' : 'Point your camera at the ISBN barcode on the back of any book to auto-fetch details');
@@ -130,10 +132,17 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
           Html5QrcodeSupportedFormats.UPC_A,
           Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR,
           Html5QrcodeSupportedFormats.QR_CODE
         ],
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        },
         verbose: false
       });
       html5QrCodeRef.current = html5QrCode;
@@ -141,8 +150,15 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       await html5QrCode.start(
         cameraId,
         {
-          fps: 15,
-          qrbox: { width: 280, height: 180 },
+          fps: 20,
+          qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.floor(viewfinderWidth * 0.88);
+            const height = Math.floor(viewfinderHeight * 0.55);
+            return {
+              width: Math.max(260, width),
+              height: Math.max(160, height)
+            };
+          },
           aspectRatio: 1.333
         },
         (decodedText) => {
@@ -198,6 +214,32 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }
     }
 
+    // 1. Check if this book is already in the library's catalog
+    if (existingBooks && existingBooks.length > 0) {
+      const existing = existingBooks.find(b => cleanISBN(b.isbn) === cleaned);
+      if (existing) {
+        soundService.playSuccess();
+        onBookFound(
+          {
+            title: existing.title,
+            author: existing.author,
+            publisher: existing.publisher || '',
+            published_date: existing.published_date || '',
+            page_count: existing.page_count,
+            price: existing.price,
+            genre: existing.genre || 'General',
+            description: existing.description || '',
+            cover_url: existing.cover_url || '',
+            isbn: cleaned,
+            source: 'library_database'
+          },
+          cleaned
+        );
+        onClose();
+        return;
+      }
+    }
+
     setIsLoadingLookup(true);
     setLookupError(null);
 
@@ -206,11 +248,25 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       soundService.playSuccess();
       onBookFound(bookData, cleaned);
       onClose();
-    } catch (err: unknown) {
-      soundService.playError();
-      const message = err instanceof Error ? err.message : 'Failed to fetch book data.';
-      setLookupError(message);
-      // Still allow user to proceed with the scanned ISBN manually!
+    } catch {
+      // For local Malayalam and regional books not in global Open Library / Google Books databases:
+      // Seamlessly transition to the Book Form with the scanned barcode pre-filled!
+      soundService.playSuccess();
+      onBookFound(
+        {
+          title: '',
+          author: '',
+          publisher: '',
+          published_date: '',
+          genre: 'General',
+          description: '',
+          cover_url: '',
+          isbn: cleaned,
+          source: 'manual'
+        },
+        cleaned
+      );
+      onClose();
     } finally {
       setIsLoadingLookup(false);
     }
@@ -224,7 +280,24 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       setIsLoadingLookup(true);
       setLookupError(null);
 
-      const html5QrCode = new Html5Qrcode('file-scanner-temp');
+      const html5QrCode = new Html5Qrcode('file-scanner-temp', {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.CODABAR,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ],
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true
+        },
+        verbose: false
+      });
       const decodedResult = await html5QrCode.scanFile(file, true);
       html5QrCode.clear();
 

@@ -14,19 +14,40 @@ interface BookFormModalProps {
 }
 
 const COMMON_GENRES = [
-  'Technology',
-  'Computer Science',
-  'Classic Fiction',
-  'Dystopian Fiction',
-  'Science',
-  'History',
-  'Philosophy',
-  'Biography',
-  'Self-Help',
+  'Novel (നോവൽ)',
+  'Short Stories (ചെറുകഥകൾ)',
+  'Poetry (കവിത)',
+  'Drama (നാടകം)',
+  'Autobiography & Biography (ജീവചരിത്രം)',
+  'Kerala History & Culture (ചരിത്രം)',
+  'Children Literature (ബാലസാഹിത്യം)',
+  'Travelogue (യാത്രാവിവരണം)',
+  'Essays & Criticism (ലേഖനം)',
+  'Philosophy & Spirituality (ആത്മീയം)',
+  'General Fiction (സാഹിത്യം)',
+  'Technology & Science (ശാസ്ത്രം)',
+  'Self-Help & Motivation',
   'Business & Economics',
-  'Psychology',
-  'Fantasy',
+  'Classic Fiction',
   'Mystery & Thriller'
+];
+
+const COMMON_PUBLISHERS = [
+  'DC Books',
+  'Mathrubhumi Books',
+  'Current Books',
+  'Olive Publications',
+  'Green Books',
+  'Poorna Publications',
+  'Kerala Sahitya Akademi',
+  'H&C Books',
+  'Prabhath Book House',
+  'Chintha Publishers',
+  'National Book Stall (NBS/SPCS)',
+  'Chithra Publications',
+  'Penguin India',
+  'HarperCollins India',
+  'Rupa Publications'
 ];
 
 export const BookFormModal: React.FC<BookFormModalProps> = ({
@@ -197,6 +218,16 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1">
+          {/* Scanned Barcode Helper Notice (shown when an unindexed local/regional book is scanned) */}
+          {formData.isbn && !formData.title && (
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2.5 animate-in fade-in">
+              <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span>
+                <strong>Barcode Scanned:</strong> <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">{formData.isbn}</span>. Enter the book title and author below to save it to your library inventory.
+              </span>
+            </div>
+          )}
+
           {/* Quick Lookup Toolbar */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
@@ -304,7 +335,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Clean Code"
+                  placeholder="e.g. Randamoozham / രണ്ടാമൂഴം / Clean Code"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-brand-500 focus:outline-none"
@@ -319,7 +350,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Robert C. Martin"
+                    placeholder="e.g. M.T. Vasudevan Nair / Akhil P. Dharmajan"
                     value={formData.author}
                     onChange={(e) => setFormData({ ...formData, author: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
@@ -353,11 +384,17 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                   </label>
                   <input
                     type="text"
+                    list="publisher-list"
                     placeholder="e.g. DC Books"
                     value={formData.publisher}
                     onChange={(e) => setFormData({ ...formData, publisher: e.target.value })}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
+                  <datalist id="publisher-list">
+                    {COMMON_PUBLISHERS.map(p => (
+                      <option key={p} value={p} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div>

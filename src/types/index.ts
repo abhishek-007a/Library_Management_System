@@ -61,5 +61,5 @@ export interface BookFetchResult {
   description: string;
   cover_url: string;
   isbn: string;
-  source: 'openlibrary' | 'googlebooks' | 'manual';
+  source: 'openlibrary' | 'googlebooks' | 'manual' | 'openlibrary_search' | 'library_database';
 }
