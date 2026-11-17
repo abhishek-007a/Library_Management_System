@@ -12,10 +12,16 @@ export function getSavedConfig(): SupabaseConfig {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.url && parsed.anonKey) {
+      if (
+        parsed &&
+        typeof parsed.url === 'string' &&
+        typeof parsed.anonKey === 'string' &&
+        parsed.url.trim().length > 0 &&
+        parsed.anonKey.trim().length > 0
+      ) {
         return {
-          url: parsed.url,
-          anonKey: parsed.anonKey,
+          url: parsed.url.trim(),
+          anonKey: parsed.anonKey.trim(),
           isConnected: true
         };
       }

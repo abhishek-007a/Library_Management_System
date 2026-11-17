@@ -174,8 +174,7 @@ class AuthService {
               .update({
                 username: cleanNewUser,
                 password: cleanNewPass,
-                name: cleanName,
-                updated_at: new Date().toISOString()
+                name: cleanName
               })
               .eq('id', matchedAdmin.id);
 

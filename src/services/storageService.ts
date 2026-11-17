@@ -60,7 +60,12 @@ class StorageService {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
+          // Mirror database to local cache as source of truth
+          this.setLocal(BOOKS_KEY, data as Book[]);
           return data as Book[];
+        }
+        if (error) {
+          console.error('Supabase getBooks error:', error);
         }
       } catch (e) {
         console.warn('Supabase query failed, falling back to local storage:', e);
@@ -88,15 +93,17 @@ class StorageService {
           .single();
 
         if (!error && data) {
-          // Also sync to local cache
+          // Sync to local cache
           const localBooks = this.getLocal<Book[]>(BOOKS_KEY, []);
-          this.setLocal(BOOKS_KEY, [data as Book, ...localBooks]);
+          this.setLocal(BOOKS_KEY, [data as Book, ...localBooks.filter(b => b.id !== (data as Book).id)]);
           return data as Book;
-        } else {
+        } else if (error) {
           console.error('Supabase addBook error:', error);
+          throw new Error(`Database error: ${error.message}`);
         }
       } catch (e) {
-        console.warn('Supabase addBook failed:', e);
+        console.error('Supabase addBook failed:', e);
+        throw e;
       }
     }
 
@@ -118,10 +125,16 @@ class StorageService {
           .single();
 
         if (!error && data) {
+          const localBooks = this.getLocal<Book[]>(BOOKS_KEY, []);
+          this.setLocal(BOOKS_KEY, localBooks.map(b => b.id === id ? (data as Book) : b));
           return data as Book;
+        } else if (error) {
+          console.error('Supabase updateBook error:', error);
+          throw new Error(`Database update error: ${error.message}`);
         }
       } catch (e) {
-        console.warn('Supabase updateBook failed:', e);
+        console.error('Supabase updateBook failed:', e);
+        throw e;
       }
     }
 
@@ -145,9 +158,13 @@ class StorageService {
           const local = this.getLocal<Book[]>(BOOKS_KEY, []).filter(b => b.id !== id);
           this.setLocal(BOOKS_KEY, local);
           return true;
+        } else {
+          console.error('Supabase deleteBook error:', error);
+          throw new Error(`Database delete error: ${error.message}`);
         }
       } catch (e) {
-        console.warn('Supabase deleteBook failed:', e);
+        console.error('Supabase deleteBook failed:', e);
+        throw e;
       }
     }
 
@@ -167,6 +184,7 @@ class StorageService {
           .order('name', { ascending: true });
 
         if (!error && data) {
+          this.setLocal(BORROWERS_KEY, data as Borrower[]);
           return data as Borrower[];
         }
       } catch (e) {
@@ -238,6 +256,7 @@ class StorageService {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
+          this.setLocal(LOANS_KEY, data as Loan[]);
           return data as Loan[];
         }
       } catch (e) {
