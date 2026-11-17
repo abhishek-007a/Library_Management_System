@@ -24,6 +24,7 @@ import { MembersView } from './components/MembersView';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { AdminChangePasswordModal } from './components/AdminChangePasswordModal';
 import { PdfExportModal } from './components/PdfExportModal';
+import { ExistingBookActionModal } from './components/ExistingBookActionModal';
 
 export function App() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -64,6 +65,8 @@ export function App() {
   const [printerInitialBook, setPrinterInitialBook] = useState<Book | null>(null);
 
   const [isPdfExportOpen, setIsPdfExportOpen] = useState(false);
+  const [existingScannedBook, setExistingScannedBook] = useState<Book | null>(null);
+  const [isExistingActionModalOpen, setIsExistingActionModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
@@ -218,9 +221,9 @@ export function App() {
 
     // Admin workflow:
     if (existing) {
-      // Directly open the existing book's details so librarian can view, edit, or return it
-      setSelectedBook(existing);
-      setIsDetailOpen(true);
+      // Prompt with Options: Add another copy OR Return/Issue book
+      setExistingScannedBook(existing);
+      setIsExistingActionModalOpen(true);
       return;
     }
 
@@ -532,15 +535,17 @@ export function App() {
                     </button>
                   )}
 
-                  {/* Export Options (Spreadsheet & PDF) */}
-                  <button
-                    onClick={() => setIsPdfExportOpen(true)}
-                    className="px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
-                    title="Export as PDF Report or Spreadsheet (.CSV)"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Export<span className="hidden sm:inline"> (PDF / CSV)</span></span>
-                  </button>
+                  {/* Export Options (Admin only: Spreadsheet & PDF) */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => setIsPdfExportOpen(true)}
+                      className="px-2.5 sm:px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-xs"
+                      title="Export as PDF Report or Spreadsheet (.CSV)"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Export<span className="hidden sm:inline"> (PDF / CSV)</span></span>
+                    </button>
+                  )}
 
                   {/* Admin Book Actions */}
                   {isAdmin && (
@@ -870,6 +875,29 @@ export function App() {
         onClose={() => setIsPdfExportOpen(false)}
         books={filteredBooks}
         onExportCsv={handleExportCSV}
+      />
+
+      <ExistingBookActionModal
+        isOpen={isExistingActionModalOpen}
+        onClose={() => setIsExistingActionModalOpen(false)}
+        book={existingScannedBook}
+        loans={loans}
+        onAddCopy={async (book, count) => {
+          await storageService.updateBook(book.id, {
+            total_copies: book.total_copies + count,
+            available_copies: book.available_copies + count
+          });
+          await loadData();
+        }}
+        onReturnBook={handleReturnBook}
+        onIssueBook={(book) => {
+          setPreselectedBookForIssue(book);
+          setIsIssueReturnOpen(true);
+        }}
+        onViewDetails={(book) => {
+          setSelectedBook(book);
+          setIsDetailOpen(true);
+        }}
       />
 
       {/* Admin Auth Modals */}

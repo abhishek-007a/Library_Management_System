@@ -32,24 +32,53 @@
   background: #94a3b8;
 }
 
-/* Print optimizations for Barcode Labels */
+/* Print optimizations for Barcode Labels and Catalog Reports */
 @media print {
+  html, body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   body * {
     visibility: hidden;
   }
 
+  /* Reset modal containers during printing so they never clip or render blank */
+  .fixed, div:has(> .print-area), div:has(.print-area) {
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+    width: 100% !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   .print-area, .print-area * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   .print-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    margin: 0;
-    padding: 10px;
-    background: white;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 15px !important;
+    background: #ffffff !important;
+    display: block !important;
   }
 
   .no-print {
