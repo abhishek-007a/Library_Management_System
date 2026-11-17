@@ -170,7 +170,62 @@ export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResul
     };
   }
 
-  // Attempt 2: Open Library Data API
+  // Attempt 2: Direct Open Library Edition API (has rich Library of Congress records for DC Books, NBS, etc.)
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const editionRes = await fetch(`https://openlibrary.org/isbn/${isbn}.json`, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (editionRes.ok) {
+      const ed = await editionRes.json();
+      if (ed && ed.title) {
+        let author = '';
+        if (ed.by_statement) {
+          author = ed.by_statement.replace(/^[;,.\s]+|[;,.\s]+$/g, '');
+        } else if (ed.authors && ed.authors.length > 0 && ed.authors[0].key) {
+          try {
+            const aRes = await fetch(`https://openlibrary.org${ed.authors[0].key}.json`);
+            if (aRes.ok) {
+              const aData = await aRes.json();
+              if (aData.name) author = aData.name;
+            }
+          } catch {
+            // ignore author fetch error
+          }
+        }
+
+        const publisher = ed.publishers?.join(', ') || '';
+        const publishedDate = ed.publish_date || '';
+        const pageCount = ed.number_of_pages || undefined;
+        const coverUrl = ed.covers && ed.covers.length > 0
+          ? `https://covers.openlibrary.org/b/id/${ed.covers[0]}-L.jpg`
+          : `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+
+        let description = '';
+        if (typeof ed.notes === 'string') description = ed.notes;
+        else if (ed.notes?.value) description = ed.notes.value;
+        else if (ed.subtitle) description = ed.subtitle;
+
+        return {
+          title: ed.title,
+          author: author || 'Unknown Author',
+          publisher,
+          published_date: publishedDate,
+          page_count: pageCount,
+          genre: ed.subjects?.slice(0, 2).join(', ') || (ed.subtitle?.toLowerCase().includes('nov') || ed.subtitle?.toLowerCase().includes('nōv') ? 'Novel (നോവൽ)' : 'General'),
+          description,
+          cover_url: coverUrl,
+          isbn,
+          source: 'openlibrary'
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('Direct Open Library edition fetch error:', err);
+  }
+
+  // Attempt 3: Open Library Data API
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
@@ -266,12 +321,16 @@ export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResul
     console.warn('OpenLibrary search API failed or timed out:', err);
   }
 
-  // Attempt 3: Google Books API fallback
+  // Attempt 5: Google Books API fallback (supports optional API key if available)
   try {
+    const apiKey = typeof window !== 'undefined'
+      ? (localStorage.getItem('libroscan_google_api_key') || (import.meta as any).env?.VITE_GOOGLE_BOOKS_API_KEY || '')
+      : '';
+    const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : '';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
     const gbooksRes = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`,
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${keyParam}`,
       { signal: controller.signal }
     );
     clearTimeout(timeout);
