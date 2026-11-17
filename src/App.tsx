@@ -9,6 +9,7 @@ import { storageService } from './services/storageService';
 import { getSavedConfig } from './lib/supabase';
 import { soundService } from './services/soundService';
 import { authService, AdminUser } from './services/authService';
+import { isSameIsbn } from './services/bookLookupService';
 
 import { Navbar } from './components/Navbar';
 import { BookCard } from './components/BookCard';
@@ -162,6 +163,25 @@ export function App() {
     if (id) {
       await storageService.updateBook(id, bookData);
     } else {
+      // Duplicate prevention: check if this book already exists in catalog
+      const existing = books.find(b => isSameIsbn(b.isbn, bookData.isbn));
+      if (existing) {
+        const addedCopies = Math.max(1, Number(bookData.total_copies) || 1);
+        const confirmAddStock = confirm(
+          `"${existing.title}" is already in your library inventory (ISBN: ${bookData.isbn}).\n\nLocation: ${existing.location_shelf}\nCurrent Stock: ${existing.total_copies} copies (${existing.available_copies} available)\n\nWould you like to increase its stock (+${addedCopies} copy, New Total: ${existing.total_copies + addedCopies}) instead of creating a duplicate entry?`
+        );
+        if (confirmAddStock) {
+          await storageService.updateBook(existing.id, {
+            total_copies: existing.total_copies + addedCopies,
+            available_copies: existing.available_copies + addedCopies
+          });
+          soundService.playSuccess();
+          await loadData();
+          return;
+        } else {
+          return; // Cancelled, avoid duplicate
+        }
+      }
       await storageService.addBook(bookData);
     }
     await loadData();
@@ -182,9 +202,11 @@ export function App() {
   };
 
   const handleBookFoundFromScan = (bookData: BookFetchResult, isbn: string) => {
+    // Robust check using isSameIsbn
+    const existing = books.find(b => isSameIsbn(b.isbn, isbn) || isSameIsbn(b.isbn, bookData.isbn));
+
     if (!isAdmin) {
       // For public users scanning an ISBN to search:
-      const existing = books.find(b => b.isbn.replace(/[^0-9X]/gi, '') === isbn.replace(/[^0-9X]/gi, ''));
       if (existing) {
         setSelectedBook(existing);
         setIsDetailOpen(true);
@@ -195,8 +217,8 @@ export function App() {
     }
 
     // Admin workflow:
-    const existing = books.find(b => b.isbn.replace(/[^0-9X]/gi, '') === isbn.replace(/[^0-9X]/gi, ''));
     if (existing) {
+      // Directly open the existing book's details so librarian can view, edit, or return it
       setSelectedBook(existing);
       setIsDetailOpen(true);
       return;
@@ -798,6 +820,7 @@ export function App() {
         onSave={handleSaveBook}
         initialData={formInitialData}
         mode={formMode}
+        existingBooks={books}
       />
 
       <BookDetailModal

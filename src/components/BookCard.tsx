@@ -77,8 +77,8 @@ export const BookCard: React.FC<BookCardProps> = ({
               <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
               <span className="font-medium truncate">{book.location_shelf}</span>
             </div>
-            {book.price !== undefined && book.price > 0 && (
-              <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap ml-1">
+            {isAdmin && book.price !== undefined && book.price > 0 && (
+              <span className="font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap ml-1" title="Book Price (Librarian View)">
                 ₹{book.price}
               </span>
             )}

@@ -147,11 +147,11 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   </div>
                 )}
 
-                {book.price !== undefined && book.price > 0 && (
+                {isAdmin && book.price !== undefined && book.price > 0 && (
                   <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/80 flex items-center space-x-2">
                     <Tag className="w-4 h-4 text-brand-600 flex-shrink-0" />
                     <div>
-                      <p className="text-[10px] uppercase font-bold text-slate-400">Price</p>
+                      <p className="text-[10px] uppercase font-bold text-slate-400">Price (Admin)</p>
                       <p className="font-bold text-slate-900">₹{book.price}</p>
                     </div>
                   </div>

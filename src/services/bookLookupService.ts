@@ -11,6 +11,39 @@ export function isValidISBN(isbn: string): boolean {
   return clean.length === 10 || clean.length === 13;
 }
 
+/**
+ * Checks whether two ISBN strings refer to the same book.
+ * Handles:
+ * - Differences in formatting, whitespace, hyphens, prefixes
+ * - Case-insensitivity (for trailing check-digit 'X')
+ * - Equivalence between ISBN-10 and ISBN-13 (EAN-13 starting with 978 sharing same 9 core digits)
+ */
+export function isSameIsbn(isbnA: string | undefined | null, isbnB: string | undefined | null): boolean {
+  if (!isbnA || !isbnB) return false;
+  const a = cleanISBN(isbnA).toUpperCase();
+  const b = cleanISBN(isbnB).toUpperCase();
+  if (!a || !b) return false;
+  if (a === b) return true;
+
+  // ISBN-13 (starts with 978) <-> ISBN-10 comparison:
+  // ISBN-13 digits 3..11 (9 digits) correspond to ISBN-10 digits 0..8
+  if (a.length === 13 && a.startsWith('978') && b.length === 10) {
+    if (a.substring(3, 12) === b.substring(0, 9)) return true;
+  }
+  if (b.length === 13 && b.startsWith('978') && a.length === 10) {
+    if (b.substring(3, 12) === a.substring(0, 9)) return true;
+  }
+
+  // Fallback: Check if one core string matches the other (for regional variants)
+  if (a.length >= 8 && b.length >= 8) {
+    const coreA = a.replace(/^978|^979/, '');
+    const coreB = b.replace(/^978|^979/, '');
+    if (coreA.slice(0, 8) === coreB.slice(0, 8)) return true;
+  }
+
+  return false;
+}
+
 export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResult> {
   const isbn = cleanISBN(isbnInput);
   if (!isbn) {

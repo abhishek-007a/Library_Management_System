@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Camera, Upload, Keyboard, Search, X, Loader2, Sparkles, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
-import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
+import { fetchBookByISBN, cleanISBN, isSameIsbn } from '../services/bookLookupService';
 import { soundService } from '../services/soundService';
 import { Book, BookFetchResult } from '../types';
 
@@ -81,46 +81,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     };
   }, [isOpen]);
 
-  // Enumerate cameras when camera tab is active
-  useEffect(() => {
-    if (!isOpen || activeTab !== 'camera') {
-      stopCameraScanner();
-      return;
-    }
-
-    let isMounted = true;
-    Html5Qrcode.getCameras()
-      .then(devices => {
-        if (!isMounted) return;
-        if (devices && devices.length > 0) {
-          const list = devices.map(d => ({ id: d.id, label: d.label || `Camera ${d.id.substring(0, 5)}` }));
-          setCameras(list);
-          // Prefer back/environment camera on mobile
-          const backCam = list.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('environment'));
-          setSelectedCameraId(backCam ? backCam.id : list[0].id);
-        } else {
-          setCameraError('No video camera detected on this device. You can use File Upload or Manual Entry.');
-        }
-      })
-      .catch(err => {
-        console.warn('Camera enumeration error:', err);
-        setCameraError('Camera access denied or unavailable. You can upload an image or enter ISBN manually.');
-      });
-
-    return () => {
-      isMounted = false;
-      stopCameraScanner();
-    };
-  }, [isOpen, activeTab]);
-
-  // Start scanning when camera is selected
-  useEffect(() => {
-    if (isOpen && activeTab === 'camera' && selectedCameraId && !isScanning && !isLoadingLookup) {
-      startCameraScanner(selectedCameraId);
-    }
-  }, [isOpen, activeTab, selectedCameraId]);
-
-  const startCameraScanner = async (cameraId: string) => {
+  const startCameraScanner = async (cameraConfig?: string | { facingMode: string }) => {
     try {
       setCameraError(null);
       if (html5QrCodeRef.current) {
@@ -147,19 +108,21 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       });
       html5QrCodeRef.current = html5QrCode;
 
+      // Prefer rear camera on mobile devices
+      const targetConfig = cameraConfig || (selectedCameraId ? selectedCameraId : { facingMode: 'environment' });
+
       await html5QrCode.start(
-        cameraId,
+        targetConfig,
         {
-          fps: 20,
+          fps: 24,
           qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const width = Math.floor(viewfinderWidth * 0.88);
-            const height = Math.floor(viewfinderHeight * 0.55);
+            const width = Math.min(viewfinderWidth * 0.9, 320);
+            const height = Math.min(viewfinderHeight * 0.6, 200);
             return {
-              width: Math.max(260, width),
-              height: Math.max(160, height)
+              width: Math.floor(Math.max(240, width)),
+              height: Math.floor(Math.max(140, height))
             };
-          },
-          aspectRatio: 1.333
+          }
         },
         (decodedText) => {
           handleCodeDetected(decodedText);
@@ -170,12 +133,73 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       );
 
       setIsScanning(true);
+      if (typeof targetConfig === 'string') {
+        setSelectedCameraId(targetConfig);
+      }
+
+      // Re-enumerate cameras once stream is live to get real hardware labels (Back/Front/Ultra-wide)
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          const list = devices.map((d, index) => {
+            let label = d.label;
+            if (!label) {
+              label = index === 0 ? 'Rear Camera (Main)' : `Camera ${index + 1}`;
+            }
+            return { id: d.id, label };
+          });
+          setCameras(list);
+          if (typeof targetConfig !== 'string') {
+            const backCam = list.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('environment') || c.label.toLowerCase().includes('0'));
+            if (backCam) setSelectedCameraId(backCam.id);
+            else if (list[0]) setSelectedCameraId(list[0].id);
+          }
+        }
+      } catch (err) {
+        console.warn('Post-start camera enumeration warning:', err);
+      }
     } catch (err: unknown) {
-      console.warn('Failed to start camera:', err);
+      console.warn('Failed to start camera with config:', cameraConfig, err);
       setIsScanning(false);
-      setCameraError('Unable to open camera stream. Please check browser camera permissions or try File Upload.');
+
+      // Fallback: If { facingMode: 'environment' } failed, try first enumerated camera ID
+      if (cameraConfig && typeof cameraConfig === 'object' && cameras.length > 0) {
+        try {
+          const fallbackCam = cameras[0].id;
+          setSelectedCameraId(fallbackCam);
+          await startCameraScanner(fallbackCam);
+          return;
+        } catch {
+          // continue to error below
+        }
+      }
+
+      setCameraError('Unable to open camera stream. Please check camera permissions in your browser or switch lenses below.');
     }
   };
+
+  const handleSwitchCamera = async () => {
+    if (cameras.length <= 1) return;
+    const currentIndex = cameras.findIndex(c => c.id === selectedCameraId);
+    const nextIndex = (currentIndex + 1) % cameras.length;
+    const nextCam = cameras[nextIndex];
+    setSelectedCameraId(nextCam.id);
+    await startCameraScanner(nextCam.id);
+  };
+
+  // Launch camera whenever camera tab is opened
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'camera') {
+      stopCameraScanner();
+      return;
+    }
+
+    startCameraScanner(selectedCameraId || { facingMode: 'environment' });
+
+    return () => {
+      stopCameraScanner();
+    };
+  }, [isOpen, activeTab]);
 
   const stopCameraScanner = async () => {
     if (html5QrCodeRef.current) {
@@ -214,9 +238,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       }
     }
 
-    // 1. Check if this book is already in the library's catalog
+    // 1. Check if this book is already in the library's catalog (prevents duplicate entries)
     if (existingBooks && existingBooks.length > 0) {
-      const existing = existingBooks.find(b => cleanISBN(b.isbn) === cleaned);
+      const existing = existingBooks.find(b => isSameIsbn(b.isbn, cleaned));
       if (existing) {
         soundService.playSuccess();
         onBookFound(
@@ -230,10 +254,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             genre: existing.genre || 'General',
             description: existing.description || '',
             cover_url: existing.cover_url || '',
-            isbn: cleaned,
+            isbn: existing.isbn,
             source: 'library_database'
           },
-          cleaned
+          existing.isbn || cleaned
         );
         onClose();
         return;
@@ -439,31 +463,63 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             <div className="flex flex-col items-center">
               {cameras.length > 1 && (
                 <div className="w-full mb-3 flex items-center justify-between text-xs text-slate-500">
-                  <label htmlFor="cameraSelect" className="font-medium">Active Camera:</label>
-                  <select
-                    id="cameraSelect"
-                    value={selectedCameraId}
-                    onChange={(e) => {
-                      setSelectedCameraId(e.target.value);
-                      startCameraScanner(e.target.value);
-                    }}
-                    className="border border-slate-300 rounded px-2 py-1 text-slate-700 bg-white"
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="cameraSelect" className="font-semibold text-slate-700">Lens:</label>
+                    <select
+                      id="cameraSelect"
+                      value={selectedCameraId}
+                      onChange={(e) => {
+                        const newId = e.target.value;
+                        setSelectedCameraId(newId);
+                        startCameraScanner(newId);
+                      }}
+                      className="border border-slate-300 rounded-lg px-2.5 py-1 text-xs text-slate-800 bg-white max-w-[170px] sm:max-w-[220px] truncate focus:ring-1 focus:ring-brand-500"
+                    >
+                      {cameras.map((c, i) => (
+                        <option key={c.id} value={c.id}>{c.label || `Camera ${i + 1}`}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSwitchCamera}
+                    className="flex items-center space-x-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 text-xs font-semibold transition shadow-2xs"
+                    title="Switch camera lens"
                   >
-                    {cameras.map(c => (
-                      <option key={c.id} value={c.id}>{c.label}</option>
-                    ))}
-                  </select>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Flip / Switch</span>
+                  </button>
                 </div>
               )}
 
               {cameraError ? (
-                <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600 mt-0.5" />
+                <div className="w-full p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm flex flex-col items-center text-center space-y-3">
+                  <AlertCircle className="w-6 h-6 flex-shrink-0 text-amber-600" />
                   <div>
                     <p className="font-semibold">{cameraError}</p>
                     <p className="mt-1 text-xs text-amber-700">
-                      You can switch to the <strong>Upload Photo</strong> tab, plug in a <strong>USB Barcode Scanner</strong>, or type the ISBN directly in <strong>Type ISBN</strong>.
+                      If your phone has multiple rear cameras (wide, macro, etc.), try tapping <strong>Retry Back Camera</strong> or switch lenses below.
                     </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => startCameraScanner({ facingMode: 'environment' })}
+                      className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
+                    >
+                      Retry Back Camera
+                    </button>
+                    {cameras.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleSwitchCamera}
+                        className="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-xs transition flex items-center space-x-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Try Next Lens</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (

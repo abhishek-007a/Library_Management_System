@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Camera, Plus, Users, Bookmark, Layers, Cloud, HardDrive, Printer, ShieldCheck, Lock, LogOut, Settings } from 'lucide-react';
+import { BookOpen, Plus, Users, Bookmark, Layers, Cloud, HardDrive, Printer, ShieldCheck, Lock, LogOut, Settings } from 'lucide-react';
 import { AdminUser } from '../services/authService';
 
 interface NavbarProps {
@@ -136,22 +136,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Printer className="w-4 h-4" />
                 </button>
 
-                {/* Manual Add Button (Desktop) */}
+                {/* Manual Add Button */}
                 <button
                   onClick={onOpenAddModal}
-                  className="hidden lg:flex items-center space-x-1.5 px-3 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
+                  className="flex items-center space-x-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl transition shadow-xs"
                 >
                   <Plus className="w-4 h-4 text-slate-500" />
-                  <span>Manual Entry</span>
-                </button>
-
-                {/* Primary Action: Barcode Scanner */}
-                <button
-                  onClick={onOpenScanner}
-                  className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-gradient-to-r from-brand-600 to-emerald-600 hover:from-brand-700 hover:to-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center space-x-1.5 shadow-md shadow-brand-500/25 active:scale-95"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span className="hidden xs:inline">Scan Barcode</span>
+                  <span><span className="hidden sm:inline">Manual </span>Entry</span>
                 </button>
 
                 {/* Admin Menu / Sign Out */}

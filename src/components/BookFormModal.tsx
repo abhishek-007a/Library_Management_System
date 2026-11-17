@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle, CheckCircle, Mic, MicOff, Languages } from 'lucide-react';
 import { Book, BookFetchResult } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
-import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
+import { fetchBookByISBN, cleanISBN, isSameIsbn } from '../services/bookLookupService';
 import { soundService } from '../services/soundService';
 
 interface BookFormModalProps {
@@ -11,6 +11,7 @@ interface BookFormModalProps {
   onSave: (bookData: Omit<Book, 'id' | 'created_at' | 'updated_at'>, id?: string) => Promise<void>;
   initialData?: Book | BookFetchResult | null;
   mode?: 'add' | 'edit';
+  existingBooks?: Book[];
 }
 
 const COMMON_GENRES = [
@@ -55,7 +56,8 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
   onClose,
   onSave,
   initialData,
-  mode = 'add'
+  mode = 'add',
+  existingBooks = []
 }) => {
   const [formData, setFormData] = useState({
     isbn: '',
@@ -78,6 +80,13 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchSuccessMsg, setFetchSuccessMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Check if entered ISBN already exists in the catalog (prevents accidental duplicate books)
+  const duplicateMatch = React.useMemo(() => {
+    if (!formData.isbn || !existingBooks || existingBooks.length === 0) return null;
+    const editingId = mode === 'edit' && initialData && 'id' in initialData ? (initialData as Book).id : null;
+    return existingBooks.find(b => isSameIsbn(b.isbn, formData.isbn) && b.id !== editingId);
+  }, [formData.isbn, existingBooks, mode, initialData]);
 
   // Voice speech-to-text dictation state (supports Malayalam and English)
   const [speechLang, setSpeechLang] = useState<'ml-IN' | 'en-IN'>('ml-IN');
@@ -292,6 +301,24 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
               <span>
                 <strong>Barcode Scanned:</strong> <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">{formData.isbn}</span>. Enter the book title and author below to save it to your library inventory.
               </span>
+            </div>
+          )}
+
+          {/* Duplicate ISBN Warning */}
+          {duplicateMatch && (
+            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start space-x-2.5 animate-in fade-in">
+              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">
+                  ⚠️ This ISBN already exists in your library: "{duplicateMatch.title}"
+                </p>
+                <p className="mt-1 text-amber-800">
+                  Location: <strong>{duplicateMatch.location_shelf}</strong> &bull; Total copies on record: <strong>{duplicateMatch.total_copies}</strong> (Available: {duplicateMatch.available_copies}).
+                </p>
+                <p className="mt-1 text-amber-700 font-medium">
+                  Saving will add to the stock of this book (+{formData.total_copies || 1} copies) instead of creating a duplicate record.
+                </p>
+              </div>
             </div>
           )}
 
