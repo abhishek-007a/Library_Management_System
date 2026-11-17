@@ -1798,6 +1798,71 @@ export const POPULAR_MALAYALAM_BOOKS: MalayalamCatalogEntry[] = [
     publishedDate: '1977',
     coverUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80',
     description: 'Kendra Sahitya Akademi Award-winning saga set in Vadakara around Khan Bahadur Pookkoya Thangal.'
+  },
+  {
+    isbns: ['9788196510565', '8196510567'],
+    isbn: '9788196510565',
+    title: 'ഏറ്റവും പ്രിയപ്പെട്ട എന്നോട്',
+    titleEnglish: 'Ettavum Priyappetta Ennodu',
+    author: 'നിമ്ന വിജയ്',
+    authorEnglish: 'Nimna Vijay',
+    publisher: 'Mankind Literature',
+    genre: 'Fiction / Self-Love (നോവൽ)',
+    publishedDate: '2023',
+    coverUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&auto=format&fit=crop&q=80',
+    description: 'സ്വയം സ്നേഹിക്കാനും മാനസിക സൗഖ്യം വീണ്ടെടുക്കാനും പ്രചോദിപ്പിക്കുന്ന നിമ്ന വിജയിന്റെ പ്രിയപ്പെട്ട നോവൽ.'
+  },
+  {
+    isbns: ['9788196510572'],
+    isbn: '9788196510572',
+    title: 'പ്രണയത്തിന്റെ നൂറു വർഷങ്ങൾ',
+    titleEnglish: 'Pranayathinte 100 Varshangal',
+    author: 'നിമ്ന വിജയ്',
+    authorEnglish: 'Nimna Vijay',
+    publisher: 'Mankind Literature',
+    genre: 'Novel (നോവൽ)',
+    publishedDate: '2023',
+    coverUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&auto=format&fit=crop&q=80',
+    description: 'നിമ്ന വിജയിന്റെ തീവ്രമായ പ്രണയവും ഏകാന്തതയും വിവരിക്കുന്ന നോവൽ.'
+  },
+  {
+    isbns: ['9789395462006', '9395462002'],
+    isbn: '9789395462006',
+    title: 'റാം C/O ആനന്ദി',
+    titleEnglish: 'Ram C/O Anandhi',
+    author: 'അഖിൽ പി. ധർമ്മജൻ',
+    authorEnglish: 'Akhil P. Dharmajan',
+    publisher: 'DC Books',
+    genre: 'Campus Romance (പ്രണയ നോവൽ)',
+    publishedDate: '2020',
+    coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&auto=format&fit=crop&q=80',
+    description: 'ചെന്നൈയിലെ കോളേജ് ജീവിതവും പ്രണയവും പ്രതിപാദിക്കുന്ന ബെസ്റ്റ് സെല്ലർ നോവൽ.'
+  },
+  {
+    isbns: ['9789357590822', '9357590827'],
+    isbn: '9789357590822',
+    title: 'മെർക്കുറി ഐലൻഡ്',
+    titleEnglish: 'Mercury Island',
+    author: 'അഖിൽ പി. ധർമ്മജൻ',
+    authorEnglish: 'Akhil P. Dharmajan',
+    publisher: 'DC Books',
+    genre: 'Adventure / Thriller',
+    publishedDate: '2021',
+    coverUrl: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=400&auto=format&fit=crop&q=80',
+    description: 'അഖിൽ പി. ധർമ്മജന്റെ ത്രില്ലർ നോവൽ.'
+  },
+  {
+    isbns: ['9788126478955'],
+    isbn: '9788126478955',
+    title: 'മീശ',
+    titleEnglish: 'Meesha (Moustache)',
+    author: 'എസ്. ഹരീഷ്',
+    authorEnglish: 'S. Hareesh',
+    publisher: 'DC Books',
+    genre: 'Novel (നോവൽ)',
+    publishedDate: '2018',
+    coverUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=400&auto=format&fit=crop&q=80',
+    description: 'കുട്ടനാടൻ പശ്ചാത്തലത്തിൽ വാവച്ചന്റെ ജീവിതവും ചരിത്രവും പറയുന്ന ജെസിബി പുരസ്കാര നോവൽ.'
   }
 ];
 

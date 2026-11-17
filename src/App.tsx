@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   BookOpen, Search, Filter, Plus, Camera, LayoutGrid, Table as TableIcon, 
   RotateCcw, Download, Sparkles, Cloud, AlertTriangle, CheckCircle2, 
@@ -69,6 +69,96 @@ export function App() {
   const [isExistingActionModalOpen, setIsExistingActionModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+
+  // Mobile Android Hardware / Gesture Back Button Handling:
+  // When any modal is open, pressing Android Back closes the modal instead of exiting the website.
+  const isAnyModalOpen =
+    isAdminLoginOpen ||
+    isAdminSettingsOpen ||
+    isScannerOpen ||
+    isBookFormOpen ||
+    isDetailOpen ||
+    isIssueReturnOpen ||
+    isPrinterOpen ||
+    isPdfExportOpen ||
+    isExistingActionModalOpen ||
+    isSettingsOpen;
+
+  const isPopstateHandlingRef = useRef(false);
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      if (!window.history.state?.modalOpen) {
+        window.history.pushState({ modalOpen: true }, '');
+      }
+    } else {
+      if (window.history.state?.modalOpen && !isPopstateHandlingRef.current) {
+        window.history.back();
+      }
+      isPopstateHandlingRef.current = false;
+    }
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      isPopstateHandlingRef.current = true;
+      // Close whichever modal is currently open
+      if (isBookFormOpen) {
+        setIsBookFormOpen(false);
+        return;
+      }
+      if (isScannerOpen) {
+        setIsScannerOpen(false);
+        return;
+      }
+      if (isDetailOpen) {
+        setIsDetailOpen(false);
+        return;
+      }
+      if (isExistingActionModalOpen) {
+        setIsExistingActionModalOpen(false);
+        return;
+      }
+      if (isIssueReturnOpen) {
+        setIsIssueReturnOpen(false);
+        return;
+      }
+      if (isAdminLoginOpen) {
+        setIsAdminLoginOpen(false);
+        return;
+      }
+      if (isAdminSettingsOpen) {
+        setIsAdminSettingsOpen(false);
+        return;
+      }
+      if (isPrinterOpen) {
+        setIsPrinterOpen(false);
+        return;
+      }
+      if (isPdfExportOpen) {
+        setIsPdfExportOpen(false);
+        return;
+      }
+      if (isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return;
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [
+    isBookFormOpen,
+    isScannerOpen,
+    isDetailOpen,
+    isExistingActionModalOpen,
+    isIssueReturnOpen,
+    isAdminLoginOpen,
+    isAdminSettingsOpen,
+    isPrinterOpen,
+    isPdfExportOpen,
+    isSettingsOpen
+  ]);
 
   // Load data
   const loadData = async () => {

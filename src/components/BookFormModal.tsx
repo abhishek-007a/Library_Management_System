@@ -258,6 +258,21 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     }
   };
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          handleApplySnippet(text.trim());
+          return;
+        }
+      }
+      setShowQuickPaste(true);
+    } catch {
+      setShowQuickPaste(true);
+    }
+  };
+
   const handleMalayalamWikiLookup = async () => {
     const query = formData.title.trim();
     if (!query) {
@@ -357,171 +372,157 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 flex-1">
-          {/* Scanned Barcode Helper Notice (shown when an unindexed local/regional book is scanned) */}
-          {formData.isbn && !formData.title && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs flex items-center space-x-2.5 animate-in fade-in">
-              <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-              <span>
-                <strong>Barcode Scanned:</strong> <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">{formData.isbn}</span>. Enter the book title and author below to save it to your library inventory.
-              </span>
-            </div>
-          )}
-
           {/* Duplicate ISBN Warning */}
           {duplicateMatch && (
-            <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start space-x-2.5 animate-in fade-in">
+            <div className="p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs flex items-start space-x-2.5 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">
-                  ⚠️ This ISBN already exists in your library: "{duplicateMatch.title}"
+                  ⚠️ Already in library: "{duplicateMatch.title}"
                 </p>
-                <p className="mt-1 text-amber-800">
-                  Location: <strong>{duplicateMatch.location_shelf}</strong> &bull; Total copies on record: <strong>{duplicateMatch.total_copies}</strong> (Available: {duplicateMatch.available_copies}).
+                <p className="mt-0.5 text-amber-800">
+                  Location: <strong>{duplicateMatch.location_shelf}</strong> &bull; Total copies: <strong>{duplicateMatch.total_copies}</strong> (Available: {duplicateMatch.available_copies}).
                 </p>
-                <p className="mt-1 text-amber-700 font-medium">
-                  Saving will add to the stock of this book (+{formData.total_copies || 1} copies) instead of creating a duplicate record.
+                <p className="mt-0.5 text-amber-700 font-medium">
+                  Saving will increase stock (+{formData.total_copies || 1} copies).
                 </p>
               </div>
             </div>
           )}
 
-          {/* Quick Lookup Toolbar */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  ISBN / Barcode Number
+          {/* Scanned ISBN & Quick Actions Toolbar (Ultra-compact for mobile) */}
+          <div className="p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+              <div className="flex items-center space-x-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700">
+                  ISBN / Barcode
                 </label>
                 {formData.isbn && (
-                  <button
-                    type="button"
-                    onClick={handleOpenGoogleSearch}
-                    className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center space-x-1"
-                  >
-                    <Search className="w-3 h-3" />
-                    <span>Search Google for this ISBN</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </button>
+                  <span className="font-mono text-xs font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
+                    {formData.isbn}
+                  </span>
                 )}
               </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 9788126402007"
-                    value={formData.isbn}
-                    onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleIsbnQuickLookup}
-                    disabled={isFetchingIsbn || !formData.isbn.trim()}
-                    className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-1.5 shadow-sm"
-                  >
-                    {isFetchingIsbn ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Fetching...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Auto-Fill Online</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleOpenGoogleSearch}
-                    disabled={!formData.isbn.trim()}
-                    title="Search Google to find book name & author of this ISBN"
-                    className="px-3 py-2.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center space-x-1 shadow-xs"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="hidden sm:inline">Google ISBN</span>
-                    <ExternalLink className="w-3 h-3 text-slate-400" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Paste from Google search helper */}
-            <div className="pt-2 border-t border-slate-200/80">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 font-medium flex items-center space-x-1">
-                  <span>Local Malayalam Book?</span>
-                  <span className="text-slate-400 hidden sm:inline">&bull; Search Google, copy the result title, and paste it here:</span>
-                </span>
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
                 <button
                   type="button"
-                  onClick={() => setShowQuickPaste(!showQuickPaste)}
-                  className="font-bold text-brand-600 hover:text-brand-800 text-[11px]"
+                  onClick={handleOpenGoogleSearch}
+                  disabled={!formData.isbn.trim()}
+                  title="Search Google for book name & author of this ISBN"
+                  className="px-2.5 py-1.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center space-x-1 shadow-2xs"
                 >
-                  {showQuickPaste ? 'Hide Quick Paste' : '⚡ Quick Paste from Google'}
+                  <Search className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Google Search</span>
+                  <ExternalLink className="w-2.5 h-2.5 text-slate-400" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePasteFromClipboard}
+                  title="1-Tap auto-paste title copied from Google"
+                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs rounded-lg transition flex items-center space-x-1 shadow-2xs"
+                >
+                  <ClipboardPaste className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>1-Tap Paste</span>
                 </button>
               </div>
-
-              {showQuickPaste && (
-                <div className="mt-2 p-2.5 bg-white border border-brand-200 rounded-lg space-y-2 animate-in fade-in">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="text"
-                      placeholder="Paste e.g. 'Aadujeevitham - Benyamin - DC Books' or 'രണ്ടാമൂഴം - എം.ടി.'"
-                      value={quickSnippet}
-                      onChange={(e) => setQuickSnippet(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleApplySnippet();
-                        }
-                      }}
-                      className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-md text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleApplySnippet()}
-                      disabled={!quickSnippet.trim()}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-md transition flex items-center justify-center space-x-1"
-                    >
-                      <ClipboardPaste className="w-3.5 h-3.5" />
-                      <span>Parse & Fill</span>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    💡 Tip: Click <strong>"Google ISBN"</strong> to see the book name on Google, copy the title, and paste it here to fill Title, Author, and Publisher in 1 click!
-                  </p>
-                </div>
-              )}
             </div>
 
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 9788196510565"
+                  value={formData.isbn}
+                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleIsbnQuickLookup}
+                disabled={isFetchingIsbn || !formData.isbn.trim()}
+                className="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-1.5 shadow-sm flex-shrink-0"
+              >
+                {isFetchingIsbn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Auto-Fill</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Quick Paste drawer */}
+            {showQuickPaste && (
+              <div className="p-2.5 bg-white border border-brand-200 rounded-lg space-y-2 animate-in fade-in">
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Paste e.g. 'ഏറ്റവും പ്രിയപ്പെട്ട എന്നോട് - നിമ്ന വിജയ്' or 'Aadujeevitham - Benyamin'"
+                    value={quickSnippet}
+                    onChange={(e) => setQuickSnippet(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleApplySnippet();
+                      }
+                    }}
+                    className="flex-1 px-2.5 py-1.5 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplySnippet()}
+                    disabled={!quickSnippet.trim()}
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition flex items-center space-x-1 flex-shrink-0"
+                  >
+                    <span>Parse & Fill</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  💡 Tip: Tap <strong>"Google Search"</strong> above, copy the book name, and tap <strong>"1-Tap Paste"</strong> to auto-fill Title, Author, and Publisher!
+                </p>
+              </div>
+            )}
+
             {fetchSuccessMsg && (
-              <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg flex items-center space-x-2 animate-in fade-in">
+              <div className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-lg flex items-center space-x-2 animate-in fade-in">
                 <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <span className="font-medium">{fetchSuccessMsg}</span>
               </div>
             )}
 
             {fetchError && (
-              <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2.5 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center space-x-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                  <span>{fetchError}</span>
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 p-2.5 rounded-lg space-y-1.5">
+                <div className="flex items-center space-x-1.5 font-medium">
+                  <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                  <span>Not found in Open Library. Use 1-tap Google search:</span>
                 </div>
-                {formData.isbn && (
+                <div className="flex items-center gap-2 pt-1 border-t border-amber-200/60">
                   <button
                     type="button"
                     onClick={handleOpenGoogleSearch}
-                    className="text-xs font-bold text-brand-700 hover:underline flex items-center space-x-1 flex-shrink-0"
+                    className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded font-bold text-[11px] flex items-center space-x-1 shadow-2xs"
                   >
-                    <span>Search Google for ISBN</span>
-                    <ExternalLink className="w-3 h-3" />
+                    <Search className="w-3 h-3 text-blue-600" />
+                    <span>Search Google</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={handlePasteFromClipboard}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[11px] flex items-center space-x-1 shadow-2xs"
+                  >
+                    <ClipboardPaste className="w-3 h-3" />
+                    <span>1-Tap Paste Copied Title</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -842,12 +843,12 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+          {/* Action buttons - Sticky on mobile and desktop */}
+          <div className="sticky bottom-0 z-20 bg-white/95 backdrop-blur-md -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 p-3 sm:p-4 border-t border-slate-200 flex items-center justify-end space-x-2 sm:space-x-3 shadow-lg">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-xs rounded-lg hover:bg-slate-50 transition"
+              className="flex-1 sm:flex-initial px-4 py-2.5 border border-slate-300 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-50 transition"
             >
               Cancel
             </button>
@@ -855,17 +856,17 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
             <button
               type="submit"
               disabled={isSaving}
-              className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold text-xs rounded-lg transition flex items-center space-x-2 shadow-sm"
+              className="flex-1 sm:flex-initial px-5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm rounded-xl transition flex items-center justify-center space-x-2 shadow-md active:scale-95"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Saving to Database...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  <span>{mode === 'edit' ? 'Update Book' : 'Save Book to Database'}</span>
+                  <span>{mode === 'edit' ? 'Update Book' : 'Save to Library'}</span>
                 </>
               )}
             </button>
