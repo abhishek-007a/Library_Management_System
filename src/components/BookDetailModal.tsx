@@ -158,8 +158,8 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 )}
               </div>
 
-              {/* Active Loans Section (if currently checked out by someone) */}
-              {activeLoansForBook.length > 0 && (
+              {/* Active Loans Section (Admin only: show who currently checked out the book) */}
+              {isAdmin && activeLoansForBook.length > 0 && (
                 <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2">
                   <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-900">
                     <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -171,7 +171,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                         <p className="font-bold text-slate-900">Borrower: {loan.borrower?.name || 'Borrower'}</p>
                         <p className="text-[11px] text-slate-500">Borrowed on: {loan.borrow_date}</p>
                       </div>
-                      {isAdmin && onReturn && (
+                      {onReturn && (
                         <button
                           onClick={async () => {
                             await onReturn(loan.id);
