@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle, Mic, MicOff, Languages } from 'lucide-react';
+import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle, CheckCircle, Mic, MicOff, Languages } from 'lucide-react';
 import { Book, BookFetchResult } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
 import { fetchBookByISBN, cleanISBN } from '../services/bookLookupService';
@@ -76,6 +76,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
   const [isFetchingIsbn, setIsFetchingIsbn] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [fetchSuccessMsg, setFetchSuccessMsg] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Voice speech-to-text dictation state (supports Malayalam and English)
@@ -148,6 +149,13 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         location_shelf: ('location_shelf' in initialData ? initialData.location_shelf : 'Shelf A-01'),
         status: ('status' in initialData ? initialData.status : 'available')
       });
+      if ('source' in initialData && initialData.source === 'goodreads_malayalam') {
+        setFetchSuccessMsg(`Matched "${initialData.title}" from Goodreads Popular Malayalam Books!`);
+      } else if ('source' in initialData && (initialData.source === 'openlibrary' || initialData.source === 'googlebooks' || initialData.source === 'openlibrary_search')) {
+        setFetchSuccessMsg(`Fetched book details online from ${initialData.source === 'googlebooks' ? 'Google Books' : 'Open Library'}!`);
+      } else {
+        setFetchSuccessMsg(null);
+      }
     } else {
       setFormData({
         isbn: '',
@@ -165,6 +173,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         location_shelf: 'Shelf A-01',
         status: 'available'
       });
+      setFetchSuccessMsg(null);
     }
     setFetchError(null);
   }, [initialData, isOpen]);
@@ -178,6 +187,7 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
 
     setIsFetchingIsbn(true);
     setFetchError(null);
+    setFetchSuccessMsg(null);
 
     try {
       const result = await fetchBookByISBN(cleaned);
@@ -194,6 +204,11 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
         description: result.description || prev.description,
         cover_url: result.cover_url || prev.cover_url
       }));
+      if (result.source === 'goodreads_malayalam') {
+        setFetchSuccessMsg(`Matched "${result.title}" from Goodreads Popular Malayalam Books!`);
+      } else {
+        setFetchSuccessMsg(`Fetched details from ${result.source === 'googlebooks' ? 'Google Books' : 'Open Library'}!`);
+      }
     } catch (err: unknown) {
       soundService.playError();
       setFetchError(err instanceof Error ? err.message : 'Book not found online. You can enter details manually.');
@@ -315,6 +330,13 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                 )}
               </button>
             </div>
+
+            {fetchSuccessMsg && (
+              <div className="mt-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg flex items-center space-x-2 animate-in fade-in">
+                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span className="font-medium">{fetchSuccessMsg}</span>
+              </div>
+            )}
 
             {fetchError && (
               <div className="mt-2 text-xs text-amber-700 flex items-center space-x-1.5">

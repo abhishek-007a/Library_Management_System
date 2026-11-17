@@ -1,4 +1,5 @@
 import { BookFetchResult } from '../types';
+import { findMalayalamBook } from '../data/popularMalayalamBooks';
 
 export function cleanISBN(raw: string): string {
   // Strip whitespace, hyphens, prefixes like "ISBN" or "ISBN-13:"
@@ -16,7 +17,23 @@ export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResul
     throw new Error('Please enter a valid ISBN code.');
   }
 
-  // Attempt 1: Open Library Data API
+  // Attempt 1: Popular Malayalam Books (Goodreads collection)
+  const malayalamMatch = findMalayalamBook(isbn);
+  if (malayalamMatch) {
+    return {
+      title: malayalamMatch.title,
+      author: malayalamMatch.author,
+      publisher: malayalamMatch.publisher,
+      published_date: malayalamMatch.publishedDate || '',
+      genre: malayalamMatch.genre,
+      description: malayalamMatch.description,
+      cover_url: malayalamMatch.coverUrl,
+      isbn,
+      source: 'goodreads_malayalam'
+    };
+  }
+
+  // Attempt 2: Open Library Data API
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 4000);
