@@ -337,30 +337,69 @@ export function App() {
     await loadData();
   };
 
-  // Export to CSV
-  const handleExportCSV = () => {
-    if (books.length === 0) return;
-    const headers = ['ISBN', 'Title', 'Author', 'Price (INR)', 'Publisher', 'Year', 'Genre', 'Shelf', 'Total Copies', 'Available Copies'];
-    const rows = books.map(b => [
-      `"${b.isbn}"`,
-      `"${b.title.replace(/"/g, '""')}"`,
-      `"${b.author.replace(/"/g, '""')}"`,
-      b.price ? b.price.toFixed(2) : '0.00',
-      `"${(b.publisher || '').replace(/"/g, '""')}"`,
-      `"${b.published_date || ''}"`,
-      `"${b.genre || ''}"`,
-      `"${b.location_shelf || ''}"`,
-      b.total_copies,
-      b.available_copies
+  // Export to CSV with UTF-8 BOM (properly supports Malayalam typography, Excel, and Google Sheets)
+  const handleExportCSV = (targetBooks?: Book[]) => {
+    const exportData = targetBooks || (filteredBooks.length > 0 ? filteredBooks : books);
+    if (!exportData || exportData.length === 0) {
+      alert('No books available to export.');
+      return;
+    }
+
+    const headers = [
+      '#',
+      'ISBN',
+      'Book Title',
+      'Author',
+      'Publisher',
+      'Published Year',
+      'Genre',
+      'Price (INR)',
+      'Shelf Location',
+      'Total Copies',
+      'Available Copies',
+      'Status'
+    ];
+
+    const escapeCsvCell = (val: string | number | null | undefined): string => {
+      if (val === null || val === undefined) return '""';
+      // Normalize line breaks to a space so rows are never split across lines
+      const clean = String(val).replace(/\r\n|\r|\n/g, ' ').replace(/"/g, '""').trim();
+      return `"${clean}"`;
+    };
+
+    const rows = exportData.map((b, idx) => [
+      idx + 1,
+      // Format ISBN as text so Excel displays 13-digit ISBN without scientific notation
+      `"\t${b.isbn.trim()}"`,
+      escapeCsvCell(b.title),
+      escapeCsvCell(b.author),
+      escapeCsvCell(b.publisher || ''),
+      escapeCsvCell(b.published_date || ''),
+      escapeCsvCell(b.genre || 'General'),
+      b.price !== undefined && b.price !== null ? Number(b.price).toFixed(2) : '0.00',
+      escapeCsvCell(b.location_shelf || 'Shelf A-01'),
+      b.total_copies ?? 1,
+      b.available_copies ?? 1,
+      escapeCsvCell(b.available_copies > 0 ? 'Available' : 'Borrowed')
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+
+    const csvBody = [
+      headers.join(','),
+      ...rows.map(r => r.join(','))
+    ].join('\r\n');
+
+    // Prepend UTF-8 BOM (\uFEFF) so Excel, Google Sheets, and LibreOffice
+    // immediately recognize Malayalam script and Unicode characters without garbled misspelling/mojibake
+    const blob = new Blob(['\uFEFF' + csvBody], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `library_books_${new Date().toISOString().split('T')[0]}.csv`);
+    link.href = url;
+    link.setAttribute('download', `libroscan_catalog_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    soundService.playSuccess();
   };
 
   return (
@@ -874,7 +913,7 @@ export function App() {
         isOpen={isPdfExportOpen}
         onClose={() => setIsPdfExportOpen(false)}
         books={filteredBooks}
-        onExportCsv={handleExportCSV}
+        onExportCsv={() => handleExportCSV(filteredBooks)}
       />
 
       <ExistingBookActionModal
