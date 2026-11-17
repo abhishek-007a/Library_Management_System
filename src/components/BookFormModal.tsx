@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle, CheckCircle, Mic, MicOff, Languages } from 'lucide-react';
+import { X, Search, Sparkles, BookOpen, Layers, MapPin, Hash, Image as ImageIcon, Save, Loader2, AlertCircle, CheckCircle, Mic, MicOff, Languages, ExternalLink, ClipboardPaste, Globe } from 'lucide-react';
 import { Book, BookFetchResult } from '../types';
 import { BarcodeRenderer } from './BarcodeRenderer';
-import { fetchBookByISBN, cleanISBN, isSameIsbn } from '../services/bookLookupService';
+import { fetchBookByISBN, cleanISBN, isSameIsbn, getGoogleBookSearchUrl, parseBookSnippet, searchMalayalamWikipedia } from '../services/bookLookupService';
 import { soundService } from '../services/soundService';
 
 interface BookFormModalProps {
@@ -226,6 +226,69 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
     }
   };
 
+  const [quickSnippet, setQuickSnippet] = useState('');
+  const [showQuickPaste, setShowQuickPaste] = useState(false);
+  const [isSearchingWiki, setIsSearchingWiki] = useState(false);
+
+  const handleOpenGoogleSearch = () => {
+    const target = formData.isbn || formData.title;
+    if (!target) return;
+    const url = getGoogleBookSearchUrl(target);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleApplySnippet = (snippetText?: string) => {
+    const textToParse = (snippetText !== undefined ? snippetText : quickSnippet).trim();
+    if (!textToParse) return;
+
+    const parsed = parseBookSnippet(textToParse);
+    if (parsed.title || parsed.author) {
+      setFormData(prev => ({
+        ...prev,
+        title: parsed.title || prev.title,
+        author: parsed.author || prev.author,
+        publisher: parsed.publisher || prev.publisher
+      }));
+      soundService.playSuccess();
+      setFetchSuccessMsg(`Auto-filled: "${parsed.title || formData.title}" by ${parsed.author || 'Author'}`);
+      setQuickSnippet('');
+      setShowQuickPaste(false);
+    } else {
+      alert('Could not detect Title or Author from the pasted text. Please enter them manually.');
+    }
+  };
+
+  const handleMalayalamWikiLookup = async () => {
+    const query = formData.title.trim();
+    if (!query) {
+      alert('Please enter or voice-dictate a book title first to search Malayalam Wikipedia.');
+      return;
+    }
+
+    setIsSearchingWiki(true);
+    try {
+      const match = await searchMalayalamWikipedia(query);
+      if (match && (match.title || match.author)) {
+        soundService.playSuccess();
+        setFormData(prev => ({
+          ...prev,
+          title: match.title || prev.title,
+          author: match.author || prev.author,
+          description: match.description || prev.description,
+          cover_url: match.cover_url || prev.cover_url,
+          genre: match.genre || prev.genre
+        }));
+        setFetchSuccessMsg(`Matched Malayalam Wikipedia article: "${match.title}"!`);
+      } else {
+        alert(`No Malayalam Wikipedia page found for "${query}". You can use "Search Google for ISBN" instead.`);
+      }
+    } catch {
+      alert('Malayalam Wikipedia search failed.');
+    } finally {
+      setIsSearchingWiki(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.isbn.trim()) {
@@ -323,39 +386,117 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
           )}
 
           {/* Quick Lookup Toolbar */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              ISBN / Barcode Number
-            </label>
-            <div className="flex space-x-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 9780132350884"
-                  value={formData.isbn}
-                  onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={handleIsbnQuickLookup}
-                disabled={isFetchingIsbn || !formData.isbn.trim()}
-                className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition flex items-center space-x-1.5 shadow-sm"
-              >
-                {isFetchingIsbn ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Fetching...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Auto-Fill Online</span>
-                  </>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                  ISBN / Barcode Number
+                </label>
+                {formData.isbn && (
+                  <button
+                    type="button"
+                    onClick={handleOpenGoogleSearch}
+                    className="text-[11px] font-bold text-brand-700 hover:text-brand-900 flex items-center space-x-1"
+                  >
+                    <Search className="w-3 h-3" />
+                    <span>Search Google for this ISBN</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
                 )}
-              </button>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 9788126402007"
+                    value={formData.isbn}
+                    onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 font-mono focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleIsbnQuickLookup}
+                    disabled={isFetchingIsbn || !formData.isbn.trim()}
+                    className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs rounded-lg transition flex items-center justify-center space-x-1.5 shadow-sm"
+                  >
+                    {isFetchingIsbn ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Fetching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Auto-Fill Online</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenGoogleSearch}
+                    disabled={!formData.isbn.trim()}
+                    title="Search Google to find book name & author of this ISBN"
+                    className="px-3 py-2.5 bg-white hover:bg-slate-100 disabled:opacity-50 text-slate-700 border border-slate-300 font-semibold text-xs rounded-lg transition flex items-center space-x-1 shadow-xs"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="hidden sm:inline">Google ISBN</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Paste from Google search helper */}
+            <div className="pt-2 border-t border-slate-200/80">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 font-medium flex items-center space-x-1">
+                  <span>Local Malayalam Book?</span>
+                  <span className="text-slate-400 hidden sm:inline">&bull; Search Google, copy the result title, and paste it here:</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowQuickPaste(!showQuickPaste)}
+                  className="font-bold text-brand-600 hover:text-brand-800 text-[11px]"
+                >
+                  {showQuickPaste ? 'Hide Quick Paste' : '⚡ Quick Paste from Google'}
+                </button>
+              </div>
+
+              {showQuickPaste && (
+                <div className="mt-2 p-2.5 bg-white border border-brand-200 rounded-lg space-y-2 animate-in fade-in">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="Paste e.g. 'Aadujeevitham - Benyamin - DC Books' or 'രണ്ടാമൂഴം - എം.ടി.'"
+                      value={quickSnippet}
+                      onChange={(e) => setQuickSnippet(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleApplySnippet();
+                        }
+                      }}
+                      className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-md text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleApplySnippet()}
+                      disabled={!quickSnippet.trim()}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-md transition flex items-center justify-center space-x-1"
+                    >
+                      <ClipboardPaste className="w-3.5 h-3.5" />
+                      <span>Parse & Fill</span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    💡 Tip: Click <strong>"Google ISBN"</strong> to see the book name on Google, copy the title, and paste it here to fill Title, Author, and Publisher in 1 click!
+                  </p>
+                </div>
+              )}
             </div>
 
             {fetchSuccessMsg && (
@@ -366,9 +507,21 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
             )}
 
             {fetchError && (
-              <div className="mt-2 text-xs text-amber-700 flex items-center space-x-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                <span>{fetchError}</span>
+              <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 p-2.5 rounded-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex items-center space-x-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  <span>{fetchError}</span>
+                </div>
+                {formData.isbn && (
+                  <button
+                    type="button"
+                    onClick={handleOpenGoogleSearch}
+                    className="text-xs font-bold text-brand-700 hover:underline flex items-center space-x-1 flex-shrink-0"
+                  >
+                    <span>Search Google for ISBN</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -466,19 +619,35 @@ export const BookFormModal: React.FC<BookFormModalProps> = ({
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Book Title *
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => startVoiceDictation('title')}
-                    title={`Speak title in ${speechLang === 'ml-IN' ? 'Malayalam' : 'English'}`}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center space-x-1.5 shadow-xs ${
-                      isListeningField === 'title'
-                        ? 'bg-rose-500 text-white border-rose-600 animate-pulse'
-                        : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'
-                    }`}
-                  >
-                    <Mic className="w-3.5 h-3.5" />
-                    <span>{isListeningField === 'title' ? 'Listening... Speak Now' : 'Voice Speak Title'}</span>
-                  </button>
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      type="button"
+                      onClick={handleMalayalamWikiLookup}
+                      disabled={isSearchingWiki || !formData.title.trim()}
+                      title="Search Malayalam Wikipedia to auto-fill Malayalam spelling, author, description & cover"
+                      className="px-2 py-1 rounded-lg text-[11px] font-bold border border-slate-200 bg-slate-50 text-slate-700 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 disabled:opacity-40 transition flex items-center space-x-1"
+                    >
+                      {isSearchingWiki ? (
+                        <Loader2 className="w-3 h-3 animate-spin text-brand-600" />
+                      ) : (
+                        <Globe className="w-3 h-3 text-slate-500" />
+                      )}
+                      <span>Wiki Fill</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startVoiceDictation('title')}
+                      title={`Speak title in ${speechLang === 'ml-IN' ? 'Malayalam' : 'English'}`}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition flex items-center space-x-1.5 shadow-xs ${
+                        isListeningField === 'title'
+                          ? 'bg-rose-500 text-white border-rose-600 animate-pulse'
+                          : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'
+                      }`}
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                      <span>{isListeningField === 'title' ? 'Listening... Speak Now' : 'Voice Speak Title'}</span>
+                    </button>
+                  </div>
                 </div>
                 <input
                   type="text"

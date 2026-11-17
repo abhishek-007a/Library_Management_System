@@ -44,6 +44,110 @@ export function isSameIsbn(isbnA: string | undefined | null, isbnB: string | und
   return false;
 }
 
+export function getGoogleBookSearchUrl(isbnOrQuery: string): string {
+  const clean = cleanISBN(isbnOrQuery) || isbnOrQuery.trim();
+  return `https://www.google.com/search?q=${encodeURIComponent(clean + ' malayalam book')}`;
+}
+
+/**
+ * Parses raw text copied from Google search results, online stores, or reviews
+ * into Title, Author, and Publisher automatically.
+ */
+export function parseBookSnippet(raw: string): { title: string; author: string; publisher: string } {
+  if (!raw) return { title: '', author: '', publisher: '' };
+  const cleaned = raw
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/ISBN[-:\s]*[0-9Xx]+/gi, '')
+    .replace(/\s*\|\s*Amazon(\.in)?/gi, '')
+    .replace(/\s*\|\s*Flipkart/gi, '')
+    .replace(/\s*\|\s*Goodreads/gi, '')
+    .replace(/\s*\|\s*DC Books/gi, ' - DC Books')
+    .replace(/(\(.*Edition.*\))/gi, '')
+    .trim();
+
+  let parts: string[] = [];
+  if (cleaned.includes(' - ')) {
+    parts = cleaned.split(' - ');
+  } else if (cleaned.includes(' | ')) {
+    parts = cleaned.split(' | ');
+  } else if (cleaned.includes(' : ')) {
+    parts = cleaned.split(' : ');
+  } else if (/ \bby\b /i.test(cleaned)) {
+    parts = cleaned.split(/ \bby\b /i);
+  } else {
+    parts = [cleaned];
+  }
+
+  parts = parts.map(p => p.trim()).filter(Boolean);
+
+  let title = parts[0] || '';
+  let author = parts[1] || '';
+  let publisher = parts[2] || '';
+
+  const knownPubs = ['DC Books', 'Mathrubhumi Books', 'Current Books', 'Green Books', 'Olive', 'H&C', 'NBS', 'Prabhath', 'Chintha'];
+  if (author && knownPubs.some(p => author.toLowerCase().includes(p.toLowerCase()))) {
+    publisher = author;
+    author = '';
+  }
+
+  return { title, author, publisher };
+}
+
+/**
+ * Searches Malayalam Wikipedia (ml.wikipedia.org) for book details,
+ * official Malayalam spelling, author, description, and cover image.
+ */
+export async function searchMalayalamWikipedia(query: string): Promise<Partial<BookFetchResult> | null> {
+  const cleanQ = query.trim();
+  if (!cleanQ) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const searchUrl = `https://ml.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(cleanQ)}&utf8=&format=json&origin=*`;
+    const res = await fetch(searchUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const hit = data.query?.search?.[0];
+    if (!hit || !hit.title) return null;
+
+    const summaryUrl = `https://ml.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(hit.title)}`;
+    const sumController = new AbortController();
+    const sumTimeout = setTimeout(() => sumController.abort(), 4000);
+    const sumRes = await fetch(summaryUrl, { signal: sumController.signal });
+    clearTimeout(sumTimeout);
+
+    if (!sumRes.ok) return null;
+    const sumData = await sumRes.json();
+
+    let author = '';
+    if (sumData.description) {
+      author = sumData.description
+        .replace(/ന്റെ നോവൽ|ന്റെ കൃതി|രചിച്ച നോവൽ|എഴുതിയ പുസ്തകം|നോവൽ|പുസ്തകം/g, '')
+        .trim();
+    }
+    if (!author && sumData.extract) {
+      const match = sumData.extract.match(/^([^.]+?)(?:രചിച്ച|എഴുതിയ|രചന)/);
+      if (match && match[1]) {
+        author = match[1].trim();
+      }
+    }
+
+    return {
+      title: sumData.title || cleanQ,
+      author: author || undefined,
+      description: sumData.extract || undefined,
+      cover_url: sumData.thumbnail?.source || undefined,
+      genre: 'Malayalam Literature (സാഹിത്യം)'
+    };
+  } catch (err) {
+    console.warn('Malayalam Wikipedia lookup error:', err);
+    return null;
+  }
+}
+
 export async function fetchBookByISBN(isbnInput: string): Promise<BookFetchResult> {
   const isbn = cleanISBN(isbnInput);
   if (!isbn) {
